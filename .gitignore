@@ -33,6 +33,9 @@ wheels/
 .ipynb_checkpoints/
 */.ipynb_checkpoints/*
 
+# Keep intentionally empty folders in Git
+!.gitkeep
+
 # LaTeX
 *.aux
 *.log
@@ -55,6 +58,16 @@ wheels/
 # Environment
 .env
 
+# Microsoft Office temporary files
+~$*
+
+# Local one-off helper scripts
+.upgrade_accuracy_notebooks.py
+
 # Large local datasets
 # GitHub blocks regular Git pushes for files over 100MB.
-src/Assigment 03/house_price/data/realtor-data.zip.csv
+src/Assignment 03/house_price/data/realtor-data.zip.csv
+src/Assignment 04/mnist/data/*
+!src/Assignment 04/mnist/data/.gitkeep
+src/Assignment 04/cifar10/data/*
+!src/Assignment 04/cifar10/data/.gitkeep
