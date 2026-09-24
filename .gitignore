@@ -71,3 +71,9 @@ src/Assignment 04/mnist/data/*
 !src/Assignment 04/mnist/data/.gitkeep
 src/Assignment 04/cifar10/data/*
 !src/Assignment 04/cifar10/data/.gitkeep
+
+# Assignment 05 local datasets
+src/Assignment 05/Fashion-MNIST/data/*
+!src/Assignment 05/Fashion-MNIST/data/.gitkeep
+src/Assignment 05/CIFAR-100/data/*
+!src/Assignment 05/CIFAR-100/data/.gitkeep
