@@ -1,0 +1,1008 @@
+{
+  "dataset": "Avocado Price",
+  "target": "AveragePrice",
+  "lookback": 12,
+  "split": {
+    "train": 13498,
+    "validation": 1727,
+    "test": 1728
+  },
+  "group_scalers": {
+    "Albany|||conventional": {
+      "mean": 1.3182481749214394,
+      "scale": 0.20191743869957274
+    },
+    "Albany|||organic": {
+      "mean": 1.8219707978032802,
+      "scale": 0.1572939035318882
+    },
+    "Atlanta|||conventional": {
+      "mean": 1.0387591267154164,
+      "scale": 0.14306063340933253
+    },
+    "Atlanta|||organic": {
+      "mean": 1.5435036494784111,
+      "scale": 0.32879694830241174
+    },
+    "BaltimoreWashington|||conventional": {
+      "mean": 1.3249635065559053,
+      "scale": 0.2182382170614125
+    },
+    "BaltimoreWashington|||organic": {
+      "mean": 1.7587591331370556,
+      "scale": 0.25133061451486816
+    },
+    "Boise|||conventional": {
+      "mean": 1.0113868600260603,
+      "scale": 0.19351222752070782
+    },
+    "Boise|||organic": {
+      "mean": 1.5124817468824179,
+      "scale": 0.3938408690695747
+    },
+    "Boston|||conventional": {
+      "mean": 1.27218977769796,
+      "scale": 0.2141277158581858
+    },
+    "Boston|||organic": {
+      "mean": 1.754306570456846,
+      "scale": 0.2769984982959227
+    },
+    "BuffaloRochester|||conventional": {
+      "mean": 1.3965693407685218,
+      "scale": 0.14472948485686216
+    },
+    "BuffaloRochester|||organic": {
+      "mean": 1.735328462872192,
+      "scale": 0.2712153021439253
+    },
+    "California|||conventional": {
+      "mean": 1.0632116794586182,
+      "scale": 0.1869421020145168
+    },
+    "California|||organic": {
+      "mean": 1.6305109471300223,
+      "scale": 0.27432816720805686
+    },
+    "Charlotte|||conventional": {
+      "mean": 1.247153286081161,
+      "scale": 0.176948789150014
+    },
+    "Charlotte|||organic": {
+      "mean": 1.9030656892887867,
+      "scale": 0.23342752515402704
+    },
+    "Chicago|||conventional": {
+      "mean": 1.3021167886518215,
+      "scale": 0.2760948439948
+    },
+    "Chicago|||organic": {
+      "mean": 1.728978100484305,
+      "scale": 0.2325274693659933
+    },
+    "CincinnatiDayton|||conventional": {
+      "mean": 0.9636496314167107,
+      "scale": 0.1515076377974945
+    },
+    "CincinnatiDayton|||organic": {
+      "mean": 1.319343066128501,
+      "scale": 0.30814776093150503
+    },
+    "Columbus|||conventional": {
+      "mean": 1.0399999949183778,
+      "scale": 0.1419622632830178
+    },
+    "Columbus|||organic": {
+      "mean": 1.401897807190888,
+      "scale": 0.2951939434294697
+    },
+    "DallasFtWorth|||conventional": {
+      "mean": 0.8186861294029403,
+      "scale": 0.10268524453658809
+    },
+    "DallasFtWorth|||organic": {
+      "mean": 1.2674452544998949,
+      "scale": 0.16432134952560234
+    },
+    "Denver|||conventional": {
+      "mean": 1.0461313859389647,
+      "scale": 0.1806082502885477
+    },
+    "Denver|||organic": {
+      "mean": 1.2771532887960002,
+      "scale": 0.3098644639117271
+    },
+    "Detroit|||conventional": {
+      "mean": 1.0935766414134171,
+      "scale": 0.16962275568439475
+    },
+    "Detroit|||organic": {
+      "mean": 1.414598538710253,
+      "scale": 0.3418541426654886
+    },
+    "GrandRapids|||conventional": {
+      "mean": 1.2671532874559834,
+      "scale": 0.28465358443809635
+    },
+    "GrandRapids|||organic": {
+      "mean": 1.7714598518218436,
+      "scale": 0.30207201255440896
+    },
+    "GreatLakes|||conventional": {
+      "mean": 1.1386131365803907,
+      "scale": 0.1567143618123429
+    },
+    "GreatLakes|||organic": {
+      "mean": 1.481678833926681,
+      "scale": 0.19315501392891685
+    },
+    "HarrisburgScranton|||conventional": {
+      "mean": 1.2416788348316277,
+      "scale": 0.153582847653183
+    },
+    "HarrisburgScranton|||organic": {
+      "mean": 1.827591239100825,
+      "scale": 0.19842638225112336
+    },
+    "HartfordSpringfield|||conventional": {
+      "mean": 1.3918978084612936,
+      "scale": 0.2268590152503446
+    },
+    "HartfordSpringfield|||organic": {
+      "mean": 2.287591232870617,
+      "scale": 0.20316303511359937
+    },
+    "Houston|||conventional": {
+      "mean": 0.8020437942804212,
+      "scale": 0.11428698975634421
+    },
+    "Houston|||organic": {
+      "mean": 1.1978832135235307,
+      "scale": 0.18748208871160343
+    },
+    "Indianapolis|||conventional": {
+      "mean": 1.1105839405616704,
+      "scale": 0.15098105420947655
+    },
+    "Indianapolis|||organic": {
+      "mean": 1.4847445261739467,
+      "scale": 0.25378328579082826
+    },
+    "Jacksonville|||conventional": {
+      "mean": 1.1494160612134168,
+      "scale": 0.21319524663023573
+    },
+    "Jacksonville|||organic": {
+      "mean": 1.789708024393903,
+      "scale": 0.2533626098745601
+    },
+    "LasVegas|||conventional": {
+      "mean": 0.9663503605083827,
+      "scale": 0.12666338620717565
+    },
+    "LasVegas|||organic": {
+      "mean": 1.705328467118479,
+      "scale": 0.3844990136761086
+    },
+    "LosAngeles|||conventional": {
+      "mean": 0.9167153247951592,
+      "scale": 0.17597739266265813
+    },
+    "LosAngeles|||organic": {
+      "mean": 1.3543065655840574,
+      "scale": 0.2637234584952411
+    },
+    "Louisville|||conventional": {
+      "mean": 1.0609489009328132,
+      "scale": 0.14503401431988597
+    },
+    "Louisville|||organic": {
+      "mean": 1.417007297930056,
+      "scale": 0.2861992679480993
+    },
+    "MiamiFtLauderdale|||conventional": {
+      "mean": 1.212043797882804,
+      "scale": 0.2195554178664095
+    },
+    "MiamiFtLauderdale|||organic": {
+      "mean": 1.5889051117166115,
+      "scale": 0.3244775141625647
+    },
+    "Midsouth|||conventional": {
+      "mean": 1.1830656889581332,
+      "scale": 0.13280006659905358
+    },
+    "Midsouth|||organic": {
+      "mean": 1.5703649668797959,
+      "scale": 0.17106966428215234
+    },
+    "Nashville|||conventional": {
+      "mean": 0.9852554767671293,
+      "scale": 0.12470742713209647
+    },
+    "Nashville|||organic": {
+      "mean": 1.3425547384867702,
+      "scale": 0.30854267046771705
+    },
+    "NewOrleansMobile|||conventional": {
+      "mean": 1.0552554730951351,
+      "scale": 0.18844380504400976
+    },
+    "NewOrleansMobile|||organic": {
+      "mean": 1.5280291921030866,
+      "scale": 0.2047531474867026
+    },
+    "NewYork|||conventional": {
+      "mean": 1.3867153307817277,
+      "scale": 0.24723908956307977
+    },
+    "NewYork|||organic": {
+      "mean": 2.0832116716969624,
+      "scale": 0.20537641089441094
+    },
+    "Northeast|||conventional": {
+      "mean": 1.3265693474860087,
+      "scale": 0.19080481292225715
+    },
+    "Northeast|||organic": {
+      "mean": 1.8953284616888004,
+      "scale": 0.15759622349651028
+    },
+    "NorthernNewEngland|||conventional": {
+      "mean": 1.223795621499528,
+      "scale": 0.17992346891089328
+    },
+    "NorthernNewEngland|||organic": {
+      "mean": 1.7094160570715466,
+      "scale": 0.21009475149947954
+    },
+    "Orlando|||conventional": {
+      "mean": 1.1744525537003565,
+      "scale": 0.20164259699652837
+    },
+    "Orlando|||organic": {
+      "mean": 1.7816788288798646,
+      "scale": 0.2554474173168461
+    },
+    "Philadelphia|||conventional": {
+      "mean": 1.3902919744923168,
+      "scale": 0.2041894840527733
+    },
+    "Philadelphia|||organic": {
+      "mean": 1.9201459858539331,
+      "scale": 0.2231165660260328
+    },
+    "PhoenixTucson|||conventional": {
+      "mean": 0.6969343051858192,
+      "scale": 0.14033620480492653
+    },
+    "PhoenixTucson|||organic": {
+      "mean": 1.7131386882197248,
+      "scale": 0.2943699265101146
+    },
+    "Pittsburgh|||conventional": {
+      "mean": 1.2462043775259144,
+      "scale": 0.14134459545342687
+    },
+    "Pittsburgh|||organic": {
+      "mean": 1.4945255448348331,
+      "scale": 0.11908391751506203
+    },
+    "Plains|||conventional": {
+      "mean": 1.1323357642132,
+      "scale": 0.16100171266416904
+    },
+    "Plains|||organic": {
+      "mean": 1.686204372531306,
+      "scale": 0.14925670047751
+    },
+    "Portland|||conventional": {
+      "mean": 0.9859124104471972,
+      "scale": 0.17782364639427095
+    },
+    "Portland|||organic": {
+      "mean": 1.4830656939179359,
+      "scale": 0.3848756703933731
+    },
+    "RaleighGreensboro|||conventional": {
+      "mean": 1.2030656920732372,
+      "scale": 0.1389142515656406
+    },
+    "RaleighGreensboro|||organic": {
+      "mean": 1.8017518250611577,
+      "scale": 0.2667345070365247
+    },
+    "RichmondNorfolk|||conventional": {
+      "mean": 1.0973722556211654,
+      "scale": 0.11701437821090456
+    },
+    "RichmondNorfolk|||organic": {
+      "mean": 1.4427007245321344,
+      "scale": 0.22720293344654496
+    },
+    "Roanoke|||conventional": {
+      "mean": 1.0757664176669435,
+      "scale": 0.10841742987080594
+    },
+    "Roanoke|||organic": {
+      "mean": 1.3373722634176268,
+      "scale": 0.2768020467736228
+    },
+    "Sacramento|||conventional": {
+      "mean": 1.25401459862716,
+      "scale": 0.19618053764629556
+    },
+    "Sacramento|||organic": {
+      "mean": 1.9991970810576947,
+      "scale": 0.34143548277691377
+    },
+    "SanDiego|||conventional": {
+      "mean": 1.0088321153264845,
+      "scale": 0.19763959461365957
+    },
+    "SanDiego|||organic": {
+      "mean": 1.669781017477495,
+      "scale": 0.3444734975720851
+    },
+    "SanFrancisco|||conventional": {
+      "mean": 1.392700723052895,
+      "scale": 0.2803504188825732
+    },
+    "SanFrancisco|||organic": {
+      "mean": 2.248613128696915,
+      "scale": 0.48909895693310945
+    },
+    "Seattle|||conventional": {
+      "mean": 1.0894890505902088,
+      "scale": 0.19647001672633074
+    },
+    "Seattle|||organic": {
+      "mean": 1.648540144419148,
+      "scale": 0.3969124183909576
+    },
+    "SouthCarolina|||conventional": {
+      "mean": 1.1175182426932955,
+      "scale": 0.15078277773527438
+    },
+    "SouthCarolina|||organic": {
+      "mean": 1.6685401479693225,
+      "scale": 0.22518618048168665
+    },
+    "SouthCentral|||conventional": {
+      "mean": 0.8430656921254457,
+      "scale": 0.1040673688307547
+    },
+    "SouthCentral|||organic": {
+      "mean": 1.279635035208542,
+      "scale": 0.15861355521180928
+    },
+    "Southeast|||conventional": {
+      "mean": 1.1259124074539129,
+      "scale": 0.1765093603631665
+    },
+    "Southeast|||organic": {
+      "mean": 1.6132116796326463,
+      "scale": 0.19524618300147295
+    },
+    "Spokane|||conventional": {
+      "mean": 1.06094890832901,
+      "scale": 0.16598691026228368
+    },
+    "Spokane|||organic": {
+      "mean": 1.6869343023230559,
+      "scale": 0.3976785915934963
+    },
+    "StLouis|||conventional": {
+      "mean": 1.139927006550949,
+      "scale": 0.17955539675117996
+    },
+    "StLouis|||organic": {
+      "mean": 1.6035036479469633,
+      "scale": 0.4003129977950933
+    },
+    "Syracuse|||conventional": {
+      "mean": 1.3921167902702833,
+      "scale": 0.12844056669950848
+    },
+    "Syracuse|||organic": {
+      "mean": 1.7318978057290515,
+      "scale": 0.22973336297138003
+    },
+    "Tampa|||conventional": {
+      "mean": 1.157445259772948,
+      "scale": 0.21504041185884612
+    },
+    "Tampa|||organic": {
+      "mean": 1.6021167927414832,
+      "scale": 0.2928725785950029
+    },
+    "TotalUS|||conventional": {
+      "mean": 1.057883209120618,
+      "scale": 0.13708876991502256
+    },
+    "TotalUS|||organic": {
+      "mean": 1.5049635006563507,
+      "scale": 0.18220917031291115
+    },
+    "West|||conventional": {
+      "mean": 0.9445985381620644,
+      "scale": 0.12785721158710514
+    },
+    "West|||organic": {
+      "mean": 1.4822627732353488,
+      "scale": 0.28940410089951396
+    },
+    "WestTexNewMexico|||conventional": {
+      "mean": 0.8138686113984045,
+      "scale": 0.10350956795790996
+    },
+    "WestTexNewMexico|||organic": {
+      "mean": 1.6474814794681691,
+      "scale": 0.3411803412838758
+    }
+  },
+  "groups": [
+    {
+      "region": "Albany",
+      "type": "conventional",
+      "weeks": 169
+    },
+    {
+      "region": "Albany",
+      "type": "organic",
+      "weeks": 169
+    },
+    {
+      "region": "Atlanta",
+      "type": "conventional",
+      "weeks": 169
+    },
+    {
+      "region": "Atlanta",
+      "type": "organic",
+      "weeks": 169
+    },
+    {
+      "region": "BaltimoreWashington",
+      "type": "conventional",
+      "weeks": 169
+    },
+    {
+      "region": "BaltimoreWashington",
+      "type": "organic",
+      "weeks": 169
+    },
+    {
+      "region": "Boise",
+      "type": "conventional",
+      "weeks": 169
+    },
+    {
+      "region": "Boise",
+      "type": "organic",
+      "weeks": 169
+    },
+    {
+      "region": "Boston",
+      "type": "conventional",
+      "weeks": 169
+    },
+    {
+      "region": "Boston",
+      "type": "organic",
+      "weeks": 169
+    },
+    {
+      "region": "BuffaloRochester",
+      "type": "conventional",
+      "weeks": 169
+    },
+    {
+      "region": "BuffaloRochester",
+      "type": "organic",
+      "weeks": 169
+    },
+    {
+      "region": "California",
+      "type": "conventional",
+      "weeks": 169
+    },
+    {
+      "region": "California",
+      "type": "organic",
+      "weeks": 169
+    },
+    {
+      "region": "Charlotte",
+      "type": "conventional",
+      "weeks": 169
+    },
+    {
+      "region": "Charlotte",
+      "type": "organic",
+      "weeks": 169
+    },
+    {
+      "region": "Chicago",
+      "type": "conventional",
+      "weeks": 169
+    },
+    {
+      "region": "Chicago",
+      "type": "organic",
+      "weeks": 169
+    },
+    {
+      "region": "CincinnatiDayton",
+      "type": "conventional",
+      "weeks": 169
+    },
+    {
+      "region": "CincinnatiDayton",
+      "type": "organic",
+      "weeks": 169
+    },
+    {
+      "region": "Columbus",
+      "type": "conventional",
+      "weeks": 169
+    },
+    {
+      "region": "Columbus",
+      "type": "organic",
+      "weeks": 169
+    },
+    {
+      "region": "DallasFtWorth",
+      "type": "conventional",
+      "weeks": 169
+    },
+    {
+      "region": "DallasFtWorth",
+      "type": "organic",
+      "weeks": 169
+    },
+    {
+      "region": "Denver",
+      "type": "conventional",
+      "weeks": 169
+    },
+    {
+      "region": "Denver",
+      "type": "organic",
+      "weeks": 169
+    },
+    {
+      "region": "Detroit",
+      "type": "conventional",
+      "weeks": 169
+    },
+    {
+      "region": "Detroit",
+      "type": "organic",
+      "weeks": 169
+    },
+    {
+      "region": "GrandRapids",
+      "type": "conventional",
+      "weeks": 169
+    },
+    {
+      "region": "GrandRapids",
+      "type": "organic",
+      "weeks": 169
+    },
+    {
+      "region": "GreatLakes",
+      "type": "conventional",
+      "weeks": 169
+    },
+    {
+      "region": "GreatLakes",
+      "type": "organic",
+      "weeks": 169
+    },
+    {
+      "region": "HarrisburgScranton",
+      "type": "conventional",
+      "weeks": 169
+    },
+    {
+      "region": "HarrisburgScranton",
+      "type": "organic",
+      "weeks": 169
+    },
+    {
+      "region": "HartfordSpringfield",
+      "type": "conventional",
+      "weeks": 169
+    },
+    {
+      "region": "HartfordSpringfield",
+      "type": "organic",
+      "weeks": 169
+    },
+    {
+      "region": "Houston",
+      "type": "conventional",
+      "weeks": 169
+    },
+    {
+      "region": "Houston",
+      "type": "organic",
+      "weeks": 169
+    },
+    {
+      "region": "Indianapolis",
+      "type": "conventional",
+      "weeks": 169
+    },
+    {
+      "region": "Indianapolis",
+      "type": "organic",
+      "weeks": 169
+    },
+    {
+      "region": "Jacksonville",
+      "type": "conventional",
+      "weeks": 169
+    },
+    {
+      "region": "Jacksonville",
+      "type": "organic",
+      "weeks": 169
+    },
+    {
+      "region": "LasVegas",
+      "type": "conventional",
+      "weeks": 169
+    },
+    {
+      "region": "LasVegas",
+      "type": "organic",
+      "weeks": 169
+    },
+    {
+      "region": "LosAngeles",
+      "type": "conventional",
+      "weeks": 169
+    },
+    {
+      "region": "LosAngeles",
+      "type": "organic",
+      "weeks": 169
+    },
+    {
+      "region": "Louisville",
+      "type": "conventional",
+      "weeks": 169
+    },
+    {
+      "region": "Louisville",
+      "type": "organic",
+      "weeks": 169
+    },
+    {
+      "region": "MiamiFtLauderdale",
+      "type": "conventional",
+      "weeks": 169
+    },
+    {
+      "region": "MiamiFtLauderdale",
+      "type": "organic",
+      "weeks": 169
+    },
+    {
+      "region": "Midsouth",
+      "type": "conventional",
+      "weeks": 169
+    },
+    {
+      "region": "Midsouth",
+      "type": "organic",
+      "weeks": 169
+    },
+    {
+      "region": "Nashville",
+      "type": "conventional",
+      "weeks": 169
+    },
+    {
+      "region": "Nashville",
+      "type": "organic",
+      "weeks": 169
+    },
+    {
+      "region": "NewOrleansMobile",
+      "type": "conventional",
+      "weeks": 169
+    },
+    {
+      "region": "NewOrleansMobile",
+      "type": "organic",
+      "weeks": 169
+    },
+    {
+      "region": "NewYork",
+      "type": "conventional",
+      "weeks": 169
+    },
+    {
+      "region": "NewYork",
+      "type": "organic",
+      "weeks": 169
+    },
+    {
+      "region": "Northeast",
+      "type": "conventional",
+      "weeks": 169
+    },
+    {
+      "region": "Northeast",
+      "type": "organic",
+      "weeks": 169
+    },
+    {
+      "region": "NorthernNewEngland",
+      "type": "conventional",
+      "weeks": 169
+    },
+    {
+      "region": "NorthernNewEngland",
+      "type": "organic",
+      "weeks": 169
+    },
+    {
+      "region": "Orlando",
+      "type": "conventional",
+      "weeks": 169
+    },
+    {
+      "region": "Orlando",
+      "type": "organic",
+      "weeks": 169
+    },
+    {
+      "region": "Philadelphia",
+      "type": "conventional",
+      "weeks": 169
+    },
+    {
+      "region": "Philadelphia",
+      "type": "organic",
+      "weeks": 169
+    },
+    {
+      "region": "PhoenixTucson",
+      "type": "conventional",
+      "weeks": 169
+    },
+    {
+      "region": "PhoenixTucson",
+      "type": "organic",
+      "weeks": 169
+    },
+    {
+      "region": "Pittsburgh",
+      "type": "conventional",
+      "weeks": 169
+    },
+    {
+      "region": "Pittsburgh",
+      "type": "organic",
+      "weeks": 169
+    },
+    {
+      "region": "Plains",
+      "type": "conventional",
+      "weeks": 169
+    },
+    {
+      "region": "Plains",
+      "type": "organic",
+      "weeks": 169
+    },
+    {
+      "region": "Portland",
+      "type": "conventional",
+      "weeks": 169
+    },
+    {
+      "region": "Portland",
+      "type": "organic",
+      "weeks": 169
+    },
+    {
+      "region": "RaleighGreensboro",
+      "type": "conventional",
+      "weeks": 169
+    },
+    {
+      "region": "RaleighGreensboro",
+      "type": "organic",
+      "weeks": 169
+    },
+    {
+      "region": "RichmondNorfolk",
+      "type": "conventional",
+      "weeks": 169
+    },
+    {
+      "region": "RichmondNorfolk",
+      "type": "organic",
+      "weeks": 169
+    },
+    {
+      "region": "Roanoke",
+      "type": "conventional",
+      "weeks": 169
+    },
+    {
+      "region": "Roanoke",
+      "type": "organic",
+      "weeks": 169
+    },
+    {
+      "region": "Sacramento",
+      "type": "conventional",
+      "weeks": 169
+    },
+    {
+      "region": "Sacramento",
+      "type": "organic",
+      "weeks": 169
+    },
+    {
+      "region": "SanDiego",
+      "type": "conventional",
+      "weeks": 169
+    },
+    {
+      "region": "SanDiego",
+      "type": "organic",
+      "weeks": 169
+    },
+    {
+      "region": "SanFrancisco",
+      "type": "conventional",
+      "weeks": 169
+    },
+    {
+      "region": "SanFrancisco",
+      "type": "organic",
+      "weeks": 169
+    },
+    {
+      "region": "Seattle",
+      "type": "conventional",
+      "weeks": 169
+    },
+    {
+      "region": "Seattle",
+      "type": "organic",
+      "weeks": 169
+    },
+    {
+      "region": "SouthCarolina",
+      "type": "conventional",
+      "weeks": 169
+    },
+    {
+      "region": "SouthCarolina",
+      "type": "organic",
+      "weeks": 169
+    },
+    {
+      "region": "SouthCentral",
+      "type": "conventional",
+      "weeks": 169
+    },
+    {
+      "region": "SouthCentral",
+      "type": "organic",
+      "weeks": 169
+    },
+    {
+      "region": "Southeast",
+      "type": "conventional",
+      "weeks": 169
+    },
+    {
+      "region": "Southeast",
+      "type": "organic",
+      "weeks": 169
+    },
+    {
+      "region": "Spokane",
+      "type": "conventional",
+      "weeks": 169
+    },
+    {
+      "region": "Spokane",
+      "type": "organic",
+      "weeks": 169
+    },
+    {
+      "region": "StLouis",
+      "type": "conventional",
+      "weeks": 169
+    },
+    {
+      "region": "StLouis",
+      "type": "organic",
+      "weeks": 169
+    },
+    {
+      "region": "Syracuse",
+      "type": "conventional",
+      "weeks": 169
+    },
+    {
+      "region": "Syracuse",
+      "type": "organic",
+      "weeks": 169
+    },
+    {
+      "region": "Tampa",
+      "type": "conventional",
+      "weeks": 169
+    },
+    {
+      "region": "Tampa",
+      "type": "organic",
+      "weeks": 169
+    },
+    {
+      "region": "TotalUS",
+      "type": "conventional",
+      "weeks": 169
+    },
+    {
+      "region": "TotalUS",
+      "type": "organic",
+      "weeks": 169
+    },
+    {
+      "region": "West",
+      "type": "conventional",
+      "weeks": 169
+    },
+    {
+      "region": "West",
+      "type": "organic",
+      "weeks": 169
+    },
+    {
+      "region": "WestTexNewMexico",
+      "type": "conventional",
+      "weeks": 169
+    },
+    {
+      "region": "WestTexNewMexico",
+      "type": "organic",
+      "weeks": 166
+    }
+  ],
+  "model_config": {
+    "input_size": 1,
+    "hidden_size": 64,
+    "num_layers": 1,
+    "dropout": 0.2
+  },
+  "training_config": {
+    "max_epochs": 250,
+    "min_epochs": 30,
+    "batch_size": 64,
+    "learning_rate": 0.001,
+    "early_stopping_patience": 25
+  },
+  "artifacts": {
+    "pytorch": "pytorch_rnn.pt",
+    "keras": "keras_rnn.weights.h5"
+  },
+  "training_device": "mps",
+  "framework_versions": {
+    "torch": "2.14.0",
+    "tensorflow": "2.21.0"
+  }
+}

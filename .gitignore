@@ -46,6 +46,14 @@ wheels/
 *.fls
 *.fdb_latexmk
 *.synctex.gz
+*.xdv
+*.dvi
+*.ps
+*.bcf
+*.run.xml
+*.nav
+*.snm
+*.vrb
 *.bbl
 *.blg
 

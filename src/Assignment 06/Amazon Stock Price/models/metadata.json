@@ -1,0 +1,36 @@
+{
+  "dataset": "Amazon Stock Price",
+  "target": "Close",
+  "lookback": 60,
+  "split": {
+    "train": 5299,
+    "validation": 662,
+    "test": 663
+  },
+  "scaler": {
+    "mean": 11.580531883300084,
+    "scale": 17.444715633579317
+  },
+  "model_config": {
+    "input_size": 1,
+    "hidden_size": 64,
+    "num_layers": 1,
+    "dropout": 0.2
+  },
+  "training_config": {
+    "max_epochs": 250,
+    "min_epochs": 30,
+    "batch_size": 64,
+    "learning_rate": 0.001,
+    "early_stopping_patience": 25
+  },
+  "artifacts": {
+    "pytorch": "pytorch_rnn.pt",
+    "keras": "keras_rnn.weights.h5"
+  },
+  "training_device": "mps",
+  "framework_versions": {
+    "torch": "2.14.0",
+    "tensorflow": "2.21.0"
+  }
+}
