@@ -1,0 +1,15 @@
+{
+  "target": "Recommended IND",
+  "models": [
+    "Logistic Regression",
+    "Multinomial Naive Bayes",
+    "Random Forest",
+    "NumPy MLP (1000-64-16-1)"
+  ],
+  "numpy_layer_sizes": [
+    1000,
+    64,
+    16,
+    1
+  ]
+}

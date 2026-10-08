@@ -1,0 +1,32 @@
+{
+  "target": "diabetes",
+  "features": [
+    "gender",
+    "age",
+    "hypertension",
+    "heart_disease",
+    "smoking_history",
+    "bmi",
+    "HbA1c_level",
+    "blood_glucose_level"
+  ],
+  "models": [
+    "Logistic Regression",
+    "Gaussian Naive Bayes",
+    "Decision Tree",
+    "NumPy MLP (64-32-16)"
+  ],
+  "thresholds": {
+    "Logistic Regression": 0.8749999999999999,
+    "Gaussian Naive Bayes": 0.95,
+    "Decision Tree": 0.8899999999999999,
+    "NumPy MLP (64-32-16)": 0.845
+  },
+  "numpy_layer_sizes": [
+    15,
+    64,
+    32,
+    16,
+    1
+  ]
+}

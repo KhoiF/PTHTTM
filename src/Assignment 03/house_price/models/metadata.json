@@ -1,0 +1,28 @@
+{
+  "target": "price",
+  "input_columns": [
+    "status",
+    "bed",
+    "bath",
+    "acre_lot",
+    "city",
+    "state",
+    "zip_code",
+    "house_size",
+    "prev_sold_date",
+    "brokered_by"
+  ],
+  "models": [
+    "Ridge Regression",
+    "Decision Tree Regressor",
+    "Random Forest Regressor",
+    "NumPy MLP (128-64-32)"
+  ],
+  "numpy_layer_sizes": [
+    83,
+    128,
+    64,
+    32,
+    1
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "dataset_key": "cifar10",
+  "dataset_name": "CIFAR-10",
+  "class_names": [
+    "airplane",
+    "automobile",
+    "bird",
+    "cat",
+    "deer",
+    "dog",
+    "frog",
+    "horse",
+    "ship",
+    "truck"
+  ],
+  "input_shape": [
+    32,
+    32,
+    3
+  ],
+  "channel_mean": [
+    0.4911344647407532,
+    0.4821121096611023,
+    0.44644734263420105
+  ],
+  "channel_std": [
+    0.24686947464942932,
+    0.24343061447143555,
+    0.2616037130355835
+  ],
+  "artifacts": {
+    "numpy": "numpy_cnn_weights.npz",
+    "keras": "keras_cnn.weights.h5",
+    "keras_model": "keras_cnn.keras",
+    "pytorch": "pytorch_cnn.pt",
+    "torchscript": "pytorch_cnn_torchscript.pt"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "features": [
+    "Pregnancies",
+    "Glucose",
+    "BloodPressure",
+    "SkinThickness",
+    "Insulin",
+    "BMI",
+    "DiabetesPedigreeFunction",
+    "Age"
+  ],
+  "target": "Outcome",
+  "zero_as_missing_indices": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "hidden_units": [
+    32,
+    16
+  ],
+  "threshold": 0.5,
+  "best_epoch": 112
+}
