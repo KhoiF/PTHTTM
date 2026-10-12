@@ -73,8 +73,15 @@ wheels/
 
 # Environment
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
+
+# Local model and package caches
+.cache/
+.hf_cache/
+huggingface_cache/
+transformers_cache/
+torch_cache/
 
 # Microsoft Office temporary files
 ~$*
