@@ -164,65 +164,214 @@ localhost. Các số liệu, hình EDA và câu trả lời minh họa dưới �
 % =========================================================================
 \chapter{Cơ Sở Lý Thuyết Về Knowledge Graph Và RAG}
 
-\section{Lịch sử và vai trò}
-Các hệ cơ sở tri thức biểu diễn sự kiện bằng thực thể và quan hệ đã được nghiên cứu trước thời đại
-large language model. Semantic Web phát triển các chuẩn để mô tả và liên kết tài nguyên bằng dữ liệu có
-cấu trúc. Năm 2012, Google giới thiệu Knowledge Graph trong tìm kiếm nhằm xử lý thực thể cùng quan hệ
-của chúng thay vì chỉ khớp chuỗi ký tự \cite{google_kg}. Năm 2020, Lewis và cộng sự giới thiệu
-Retrieval-Augmented Generation, kết hợp truy xuất nguồn tri thức với mô hình sinh văn bản
-\cite{lewis_rag}.
+\section{Quá trình hình thành và vai trò}
+\subsection{Từ cơ sở tri thức đến RAG}
+Trước khi mô hình ngôn ngữ lớn được sử dụng rộng rãi, các hệ biểu diễn tri thức đã tổ chức
+khái niệm và sự kiện thành thực thể, quan hệ hoặc luật. Cơ sở tri thức (knowledge base, KB)
+là tập thông tin được lưu theo một cấu trúc cho phép truy vấn. Knowledge Graph (KG) là
+một cách tổ chức KB bằng đồ thị: nút biểu diễn đối tượng, cạnh biểu diễn liên hệ, còn thuộc
+tính ghi lại thông tin mô tả. Vì thế, KB là vai trò của kho tri thức; KG là một dạng biểu
+diễn cụ thể của kho đó. Bản tổng quan của Phạm Mai Linh đặt KG và RAG trong dòng phát
+triển từ mạng ngữ nghĩa, Semantic Web đến các hệ hỏi đáp hiện đại \cite{linhpm_report}.
 
-Trong bài tập này, KG đóng vai trò một knowledge base (KB) có thể truy vấn theo khóa và quan hệ. RAG
-biến dữ liệu thành các đoạn văn có nguồn, tìm đoạn liên quan đến câu hỏi và cung cấp chúng cho mô hình
-ngôn ngữ. Agent chọn công cụ phù hợp với câu hỏi và trả kèm nguồn, giúp người đọc kiểm tra được dữ kiện.
+Trong Semantic Web, W3C chuẩn hóa mô hình RDF để phát biểu dữ kiện bằng bộ ba
+chủ thể--vị từ--đối tượng. Đặc tả RDF 1.1 mô tả đồ thị như một tập các bộ ba có hướng
+\cite{w3c_rdf}. Năm 2012, Google giới thiệu Knowledge Graph cho tìm kiếm, nhấn mạnh
+việc nhận diện thực thể và mối quan hệ thay vì chỉ đối sánh các chuỗi ký tự
+\cite{google_kg}. Các mốc này giải thích vì sao truy vấn về Amazon, tháng 12/2023 và
+phiên 05/12/2023 cần được gắn với những định danh rõ ràng.
 
-\section{Knowledge Graph và bộ ba tri thức}
-Một KG có thể mô tả bằng $G=(V,E)$, trong đó $V$ là tập nút và
-$E\subseteq V\times R\times V$ là tập cạnh có nhãn quan hệ thuộc $R$.
-Bộ ba $(s,p,o)$ gồm chủ thể, quan hệ và đối tượng. Ví dụ:
+Ở hướng xử lý văn bản, DrQA năm 2017 kết hợp truy xuất tài liệu với mô hình đọc hiểu
+để trả lời câu hỏi mở \cite{drqa}. REALM năm 2020 đưa truy xuất tri thức vào quá trình
+tiền huấn luyện mô hình ngôn ngữ \cite{realm}. Cũng trong năm 2020, Lewis và cộng sự
+đặt tên Retrieval-Augmented Generation (RAG) cho kiến trúc kết hợp bộ truy xuất với
+mô hình sinh câu trả lời \cite{lewis_rag}. Những công trình này là bối cảnh lịch sử; bộ
+truy xuất của Assignment 07 dùng TF-IDF thưa, không phải bộ mã hóa truy xuất dày đặc
+của công trình RAG gốc.
+
+\subsection{Vai trò trong hệ hỏi đáp trên dữ liệu bảng}
+KG phù hợp với câu hỏi có khóa rõ ràng: tìm phiên theo ngày, lần theo năm--tháng--phiên,
+hoặc đọc thống kê của một nhóm. RAG phù hợp với câu hỏi mô tả mà người dùng diễn đạt
+tự do: tài liệu liên quan được truy xuất rồi đưa cho mô hình ngôn ngữ để diễn đạt câu trả
+lời. Với câu hỏi cần tính trung bình, tổng hoặc tỷ lệ trên nhiều bản ghi, phép tính trực
+tiếp từ CSV giữ được quy tắc tính toán tường minh. Ba cách xử lý này bổ sung cho nhau
+nhưng không có cách nào tự bảo đảm câu trả lời đúng.
+
+Nguồn dữ liệu cũng quyết định phạm vi kết luận. KB và corpus RAG của bài tập chỉ xuất
+phát từ hai CSV đã cung cấp; giá Amazon là giá lịch sử đến 05/12/2023, còn tỷ lệ
+diabetes là thống kê của tập quan sát. Trả kèm ID nguồn giúp kiểm tra câu trả lời, nhưng
+ID không thay thế bước đối chiếu nội dung và không biến tương quan thành quan hệ nhân quả.
+
+\section{Knowledge Graph như một cơ sở tri thức}
+\subsection{Thực thể, quan hệ, bộ ba và thuộc tính}
+Xét đồ thị có hướng $G=(V,E)$, với $V$ là tập nút và
+$E\subseteq V\times R\times V$ là tập cạnh gắn nhãn từ tập quan hệ $R$. Một cạnh có
+thể đọc thành bộ ba $(s,p,o)$: chủ thể $s$ liên hệ với đối tượng $o$ qua vị từ $p$.
+Với dữ liệu Amazon, ví dụ
 \begin{equation}
-    (\texttt{year:2023},\;\texttt{has\_month},\;\texttt{month:2023-12}).
+    (\texttt{year:2023},\;\texttt{has\_month},\;\texttt{month:2023-12})
 \end{equation}
-Mỗi node còn có thuộc tính số hoặc văn bản. Chẳng hạn, node phiên AMZN ngày 05/12/2023 lưu
-\codeinline{Close = 146.880005}, còn node nhóm giới tính nữ của diabetes lưu số bản ghi, số nhãn 1
-và tỷ lệ. Graph được cài bằng \codeinline{networkx.DiGraph}. Khóa node ổn định và tên quan hệ tường
-minh giúp tránh nhập nhằng khi truy vấn.
+cho biết node năm nối với node tháng. Bước tiếp theo, cạnh \codeinline{has_session}
+nối tháng với phiên \codeinline{day:2023-12-05}. Trong dữ liệu diabetes, node dataset
+nối với node nhóm giới tính nữ qua \codeinline{has_cohort};
+từ node nhóm có các cạnh đến node kết quả nhãn 0 và 1. Đây là quan hệ về
+\emph{cấu trúc dữ liệu thống kê}, không phải quan hệ lâm sàng giữa những người bệnh.
 
-Quy trình tạo KB gồm kiểm tra schema CSV, chuẩn hóa khóa, xây node/cạnh, nạp thuộc tính và đối chiếu
-với phép tính trực tiếp trên CSV. KB chỉ phản ánh những sự kiện được đưa vào graph. Truy vấn một ngày
-không có phiên hoặc một nhóm không có trong CSV phải báo thiếu dữ liệu.
+Thuộc tính là cặp tên--giá trị gắn với nút hoặc cạnh. Node phiên giao dịch lưu
+\codeinline{Open}, \codeinline{High}, \codeinline{Low}, \codeinline{Close},
+\codeinline{Adj_Close} và \codeinline{Volume}; node nhóm lưu số bản ghi, số nhãn 1 và
+tỷ lệ. Chẳng hạn, node \codeinline{day:2023-12-05} có \codeinline{Close = 146.880005}.
+Ở graph diabetes, số nhãn 1 còn là thuộc tính \codeinline{count} của cạnh
+\codeinline{positive_count}. Phân biệt cạnh với thuộc tính giúp đọc đúng kết quả:
+cạnh nêu loại liên kết, còn thuộc tính nêu giá trị của liên kết hoặc thực thể.
 
-\section{Retrieval-Augmented Generation}
-RAG gồm hai giai đoạn chính. Khi chuẩn bị dữ liệu, hệ thống chuyển CSV thành tài liệu ngắn có ID nguồn
-và lập chỉ mục. Khi nhận câu hỏi, hệ thống truy xuất tài liệu liên quan, đặt chúng vào prompt và yêu
-cầu mô hình sinh câu trả lời dựa trên ngữ cảnh đó:
+\subsection{Schema, định danh và truy vấn}
+Schema graph xác định các loại nút, loại cạnh và thuộc tính được phép có. Với Amazon,
+đường đi hợp lệ là cổ phiếu $\rightarrow$ năm $\rightarrow$ tháng $\rightarrow$ phiên.
+Với diabetes, đường đi là dataset $\rightarrow$ nhóm thống kê $\rightarrow$ kết quả
+nhãn. Định danh như \codeinline{day:2023-12-05} và
+\codeinline{cohort:gender:Female} phải nhất quán để một truy vấn trỏ đúng node. Trước
+khi xây graph, cần kiểm tra kiểu ngày, tên cột, giá trị thiếu và quy tắc nhóm; sau khi
+xây, cần đối chiếu thuộc tính với CSV nguồn.
+
+Về lý thuyết, graph cho phép tìm node theo khóa, đi theo cạnh và nối nhiều bước quan
+hệ. Trong Assignment 07, \codeinline{networkx.DiGraph} lưu graph có nhãn quan hệ
+trong thuộc tính cạnh; \codeinline{query_graph} lấy trực tiếp node phiên hoặc nhóm theo
+định danh. Đây là graph thuộc tính cài bằng NetworkX. Nó không phải kho RDF với
+URI/SPARQL, không có ontology lâm sàng, và code không thực hiện suy luận nhiều bước.
+Việc nêu các khả năng tổng quát của KG không có nghĩa là ứng dụng đã triển khai tất
+cả các khả năng ấy.
+
+Nếu ngày không có phiên hoặc nhóm không tồn tại, tra cứu trả về thiếu dữ liệu. Nếu
+cần trung bình trên một khoảng ngày, agent dùng trực tiếp những hàng CSV tương ứng;
+graph không tham gia vào phép tính khoảng ngày. Quy tắc này giữ ranh giới giữa
+một sự kiện đã lưu trong KB và một thống kê được tính khi có câu hỏi.
+
+\section{RAG: lập chỉ mục, truy xuất và sinh câu trả lời}
+RAG đưa thông tin từ một nguồn bên ngoài mô hình vào ngữ cảnh lúc hỏi đáp. Mô hình
+sinh không cần ghi nhớ từng hàng CSV trong trọng số của nó; thay vào đó, ứng dụng
+chuẩn bị corpus, tìm bằng chứng phù hợp, rồi yêu cầu mô hình trả lời từ bằng chứng đó
+\cite{lewis_rag}. Luồng tổng quát là
 \begin{equation}
-    \text{CSV}\rightarrow\text{Documents}\rightarrow\text{Index}
-    \xrightarrow{\text{Question}}\text{Top-}k\text{ evidence}
-    \rightarrow\text{LLM}\rightarrow\text{Answer + Sources}.
+    \begin{aligned}
+    \text{CSV} &\longrightarrow \text{tài liệu có ID}
+                  \longrightarrow \text{chỉ mục},\\
+    \text{câu hỏi + chỉ mục} &\longrightarrow \text{top-}k\text{ bằng chứng},\\
+    \text{câu hỏi + bằng chứng} &\longrightarrow \text{LLM}
+                  \longrightarrow \text{câu trả lời + ID nguồn}.
+    \end{aligned}
 \end{equation}
-Hai ứng dụng dùng Qwen3-0.6B cục bộ cho bước sinh \cite{qwen3_card}. Model chỉ được nạp khi câu hỏi
-thật sự đi vào nhánh RAG và được giữ trong bộ nhớ cho các câu hỏi tiếp theo.
 
-\section{TF-IDF và độ tương đồng cosine}
-Notebook dùng \codeinline{TfidfVectorizer} với \codeinline{analyzer="char_wb"}, n-gram ký tự độ dài
-3--5 để xử lý câu hỏi tiếng Việt xen tên cột tiếng Anh. TF-IDF tăng trọng số cho những cụm đặc trưng
-của tài liệu và giảm trọng số của cụm xuất hiện phổ biến. Với vector câu hỏi $q$ và tài liệu $d$,
-điểm xếp hạng là:
+\subsection{Giai đoạn 1: tạo tài liệu và lập chỉ mục}
+Đơn vị truy xuất phải đủ ngắn để một kết quả có ý nghĩa. Amazon tạo một tài liệu tổng
+quan, một tài liệu cho mỗi phiên và một tài liệu thống kê theo tháng; ví dụ
+\codeinline{AMZN:2023-12-05} chứa các chỉ số OHLCV của phiên đó. Diabetes tạo tài
+liệu tổng quan \codeinline{DIABETES:overall} và tài liệu cho từng nhóm, như
+\codeinline{DIABETES:gender:Female}. Mỗi tài liệu có trường \codeinline{id} và
+\codeinline{text}. Các tài liệu này vốn ngắn và được tạo từ hàng hoặc nhóm thống kê,
+nên code không chia tài liệu dài thành các đoạn chồng lấn như trong một số hệ RAG
+dùng văn bản tự do.
+
+Sau khi tạo corpus, \codeinline{TfidfVectorizer} học từ vựng n-gram trên toàn bộ tài
+liệu và biến chúng thành ma trận thưa. Chỉ mục được giữ trong bộ nhớ của agent cùng
+danh sách tài liệu; không có cơ sở dữ liệu vector hoặc dịch vụ tìm kiếm bên ngoài.
+Hai bước xây tài liệu và xây chỉ mục chỉ chạy khi khởi tạo agent, trước khi tiếp nhận
+câu hỏi.
+
+\subsection{Giai đoạn 2: truy xuất và lọc bằng chứng}
+Câu hỏi được biến đổi bằng chính vectorizer đã học trên corpus, để vector câu hỏi
+và tài liệu nằm trong cùng không gian đặc trưng. Code tính cosine similarity, sắp
+điểm từ cao xuống thấp, xét tối đa $k=4$ tài liệu đầu rồi chỉ giữ tài liệu có điểm
+ít nhất $0{,}10$. Chẳng hạn, câu hỏi tóm tắt Amazon có thể lấy tài liệu
+\codeinline{AMZN:overview}; câu hỏi mô tả diabetes có thể lấy
+\codeinline{DIABETES:overall}. Truy xuất chỉ cho biết mức phù hợp của văn bản theo
+đặc trưng đã chọn, chưa chứng minh rằng tài liệu đủ dữ kiện để trả lời.
+
+Nếu không còn tài liệu nào sau lọc, agent trả thông báo không tìm thấy bằng chứng
+và không gọi mô hình sinh. Điều này khác với trường hợp có bằng chứng nhưng bằng
+chứng không chứa chi tiết mà câu hỏi đòi hỏi: prompt yêu cầu mô hình nói không đủ
+dữ liệu, song câu trả lời vẫn cần được người đọc kiểm tra. ID nguồn trong đầu ra
+là ID của các tài liệu được truy xuất, không phải chứng nhận tự động cho từng mệnh
+đề do mô hình sinh ra.
+
+\subsection{Giai đoạn 3: tạo câu trả lời có ngữ cảnh}
+Ứng dụng ghép các đoạn truy xuất theo dạng \codeinline{[ID] text} vào phần ngữ cảnh
+của prompt, kèm câu hỏi và chỉ dẫn trả lời ngắn bằng tiếng Việt, chỉ dùng dữ kiện
+trong ngữ cảnh. Hai \codeinline{deploy.py} dùng Qwen3-0.6B cục bộ cho bước này
+\cite{qwen3_card}; mô hình được nạp khi lần đầu cần sinh và được lưu trong bộ nhớ
+cho các lượt tiếp theo. Câu trả lời do mô hình diễn đạt, còn danh sách
+\codeinline{sources} được chương trình lấy từ ID tài liệu đã truy xuất.
+
+Prompt Amazon cấm suy diễn giá hiện tại hoặc dự báo; prompt diabetes cấm chẩn đoán,
+tư vấn điều trị và suy luận rằng một nhóm dữ liệu gây bệnh. Những ràng buộc này
+giảm nguy cơ trả lời vượt phạm vi, nhưng không thay thế kiểm tra nguồn. Các câu hỏi
+đòi phép tính chính xác được agent chuyển sang graph hoặc CSV, thay vì yêu cầu Qwen
+tự tính trên các đoạn văn.
+
+\section{TF-IDF ký tự và độ tương đồng cosine}
+Trong bài tập này, \codeinline{TfidfVectorizer} dùng
+\codeinline{analyzer="char_wb"} và n-gram ký tự dài 3--5. Bộ phân tích này tạo n-gram
+bên trong ranh giới từ, có đệm khoảng trắng; vì vậy tên cột tiếng Anh, mã nguồn và
+cụm tiếng Việt vẫn có thể chia sẻ một số mảnh ký tự. Đây là biểu diễn \emph{thưa}
+dựa trên dạng chữ, không phải embedding ngữ nghĩa. Câu hỏi dùng từ khác xa corpus
+vẫn có thể bị bỏ sót.
+
+Với $N$ tài liệu và n-gram $t$, đặt $\operatorname{df}(t)$ là số tài liệu chứa $t$.
+Theo cấu hình mặc định có làm trơn của scikit-learn, trọng số trước chuẩn hóa là
 \begin{equation}
-    \operatorname{cosine}(q,d)=\frac{q\cdot d}{\lVert q\rVert_2\lVert d\rVert_2}.
+    w_{t,d}=\operatorname{tf}(t,d)
+    \left[\log\!\left(\frac{N+1}{\operatorname{df}(t)+1}\right)+1\right],
 \end{equation}
-Hệ thống lấy nhiều nhất bốn tài liệu có điểm từ $0{,}10$. Ngưỡng này chỉ là điều kiện liên quan về
-mặt văn bản; nó không bảo đảm nội dung được truy xuất đủ để trả lời mọi câu hỏi. Nếu không có tài liệu
-đạt ngưỡng, agent thông báo thiếu bằng chứng.
+trong đó $\operatorname{tf}(t,d)$ là số lần $t$ xuất hiện trong tài liệu $d$.
+N-gram xuất hiện ở nhiều tài liệu có trọng số phân biệt thấp hơn n-gram hiếm.
+Vector tài liệu và câu hỏi được chuẩn hóa theo chuẩn $L_2$; điểm so khớp là
+\begin{equation}
+    \operatorname{cosine}(q,d)=
+    \frac{q\cdot d}{\lVert q\rVert_2\lVert d\rVert_2}.
+\end{equation}
+Với các vector đã chuẩn hóa, điểm này bằng tích vô hướng của chúng. Công thức và
+hành vi \codeinline{TfidfVectorizer} được mô tả trong tài liệu scikit-learn
+\cite{sklearn_tfidf}. Ngưỡng $0{,}10$ là quy tắc lọc thực dụng của bài tập, không
+phải ngưỡng bảo đảm độ đúng.
 
-\section{Agent điều phối có kiểm soát}
-Agent áp dụng quy tắc từ trên xuống: phát hiện khóa ngày hoặc nhóm để tra graph, dùng CSV cho phép
-tính tổng hợp, và dùng RAG cho câu hỏi mô tả. Các giá trị thống kê được tạo bằng phép tính trên dữ liệu
-hoặc thuộc tính graph; LLM diễn đạt tài liệu truy xuất. Đầu ra gồm ba trường
-\codeinline{answer}, \codeinline{sources} và \codeinline{tools}. Trường \codeinline{tools} cho biết
-nhánh thực sự đã chạy, ví dụ \codeinline{knowledge_graph} hoặc cặp
-\codeinline{rag_retrieval}, \codeinline{local_llm}.
+\section{Agent điều phối và phân biệt với GraphRAG}
+Agent nhận câu hỏi rồi chọn công cụ theo các quy tắc có thứ tự. Amazon ưu tiên
+khoảng ngày để tính trực tiếp trên CSV, ngày đơn để tra node phiên, tháng hoặc
+năm để kiểm tra graph rồi tính thống kê CSV; câu hỏi mô tả mới vào RAG. Diabetes
+từ chối yêu cầu chẩn đoán, trả danh sách cột theo schema CSV, tra graph cho thống kê nhóm và tính
+trực tiếp cho thống kê toàn dataset; câu hỏi mô tả mới vào RAG. Nếu câu hỏi ngoài
+phạm vi, agent trả lời ngoài phạm vi thay vì gọi mô hình.
+
+\begin{table}[H]
+\centering
+\caption{Vai trò của các nhánh trong agent Assignment 07}
+\label{tab:theory_agent_routes}
+\begin{tabularx}{\textwidth}{p{2.6cm}XX}
+\toprule
+\textbf{Nhánh} & \textbf{Dạng câu hỏi} & \textbf{Nguồn tạo kết quả} \\
+\midrule
+Graph & Phiên theo ngày, tỷ lệ theo nhóm & Thuộc tính node/cạnh đã xây từ CSV \\
+CSV & Khoảng ngày, thống kê toàn dataset & Phép tính trực tiếp trên các hàng CSV \\
+RAG + LLM & Tóm tắt, mô tả dữ liệu & Tài liệu truy xuất và Qwen3 diễn đạt \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Đầu ra có \codeinline{answer}, \codeinline{sources} và \codeinline{tools}. Trường
+\codeinline{tools} cho biết đường xử lý thực sự chạy: chẳng hạn
+\codeinline{knowledge_graph}, \codeinline{csv_statistics} hoặc cặp
+\codeinline{rag_retrieval} và \codeinline{local_llm}. Một câu hỏi theo tháng có thể
+dùng cả graph lẫn CSV, nhưng không đưa bộ ba graph và tài liệu RAG vào cùng một
+prompt.
+
+GraphRAG là tên gọi cho những kiến trúc đưa cấu trúc đồ thị vào bước truy xuất
+hoặc tổng hợp ngữ cảnh cho mô hình sinh; một hướng nghiên cứu năm 2024 dùng đồ
+thị và tóm tắt cộng đồng để trả lời câu hỏi bao quát corpus \cite{edge_graphrag}.
+Tài liệu tham khảo của Phạm Mai Linh mô tả một đường ống truy xuất kép từ graph
+và văn bản \cite{linhpm_report}. Đó là kiến trúc để đối chiếu về mặt lý thuyết.
+Assignment 07 hiện triển khai \emph{agent định tuyến giữa KG, CSV và RAG}; nó
+không triển khai đường ống GraphRAG truy xuất kép và không chứng minh khả năng
+suy luận nhiều bước.
 
 % =========================================================================
 % CHUONG 2
@@ -491,17 +640,43 @@ cho thấy luồng từ khảo sát dữ liệu, biểu diễn tri thức, truy 
 nguồn và nêu giới hạn của từng dataset là điều kiện cần để sử dụng kết quả đúng mục đích.
 
 \begin{thebibliography}{9}
+\bibitem{linhpm_report}
+Phạm Mai Linh, \emph{Chương 04: Knowledge Graph và RAG},
+Tiểu luận học phần Phát triển các hệ thống thông minh,
+Học viện Công nghệ Bưu chính Viễn thông, 2026.
+
+\bibitem{w3c_rdf}
+W3C, \emph{RDF 1.1 Concepts and Abstract Syntax}, 2014.
+\url{https://www.w3.org/TR/rdf-concepts/}.
+
 \bibitem{google_kg}
-Google Research, ``New Challenges in Computer Science Research,'' 2012.
-\url{https://research.google/blog/new-challenges-in-computer-science-research/}.
+A. Singhal, Google, \emph{Introducing the Knowledge Graph: things, not strings}, 2012.
+\url{https://blog.google/products-and-platforms/products/search/introducing-knowledge-graph-things-not/}.
+
+\bibitem{drqa}
+D. Chen, A. Fisch, J. Weston, and A. Bordes,
+\emph{Reading Wikipedia to Answer Open-Domain Questions}, 2017.
+\url{https://arxiv.org/abs/1704.00051}.
+
+\bibitem{realm}
+K. Guu et al., \emph{REALM: Retrieval-Augmented Language Model Pre-Training}, 2020.
+\url{https://arxiv.org/abs/2002.08909}.
 
 \bibitem{lewis_rag}
-P. Lewis et al., ``Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks,'' 2020.
+P. Lewis et al., \emph{Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks}, 2020.
 \url{https://arxiv.org/abs/2005.11401}.
 
 \bibitem{qwen3_card}
-Qwen, ``Qwen3-0.6B Model Card.''
+Qwen, \emph{Qwen3-0.6B Model Card}.
 \url{https://huggingface.co/Qwen/Qwen3-0.6B}.
+
+\bibitem{sklearn_tfidf}
+scikit-learn, \emph{TfidfVectorizer Documentation}.
+\url{https://scikit-learn.org/stable/modules/generated/sklearn.feature_extraction.text.TfidfVectorizer.html}.
+
+\bibitem{edge_graphrag}
+D. Edge et al., \emph{From Local to Global: A Graph RAG Approach to Query-Focused Summarization}, 2024.
+\url{https://arxiv.org/abs/2404.16130}.
 \end{thebibliography}
 
 \end{document}
