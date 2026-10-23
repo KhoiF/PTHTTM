@@ -7,6 +7,10 @@
 \usetikzlibrary{calc,positioning,arrows.meta,shapes.geometric}
 \usepackage{hyperref,xurl,fancyhdr,titlesec,caption,enumitem,longtable}
 \usepackage{microtype}
+\usepackage{fvextra}
+\setmonofont{Courier New}
+\DefineVerbatimEnvironment{NotebookCode}{Verbatim}{fontsize=\footnotesize,breaklines=true,breakanywhere=true,frame=single,framesep=2mm}
+\DefineVerbatimEnvironment{NotebookOutput}{Verbatim}{fontsize=\footnotesize,breaklines=true,breakanywhere=true,frame=leftline,framesep=2mm}
 \renewcommand{\contentsname}{Mục lục}
 \renewcommand{\listfigurename}{Danh mục hình ảnh}
 \renewcommand{\listtablename}{Danh mục bảng}
@@ -283,17 +287,187 @@ House price & 2.226.382 căn & mẫu 200.000 căn & \texttt{price}: giá USD\\
 \datasetlink{https://www.kaggle.com/datasets/nicapotato/womens-ecommerce-clothing-reviews}
 Tệp \texttt{Womens Clothing E-Commerce Reviews.csv} có 23.486 dòng. Notebook giữ 22.642 nhận xét hợp lệ sau bước làm sạch văn bản. Cột đầu vào chính là \texttt{Review Text}; nhãn là \texttt{Recommended IND}. Một dòng mẫu có nội dung ``Absolutely wonderful - silky and sexy and comfortable'', điểm đánh giá 4 và nhãn khuyến nghị bằng 1. Nội dung review có thể dài, rất ngắn hoặc trống; vì thế số dòng thật sự đi vào benchmark nhỏ hơn số dòng CSV. Trong dữ liệu gốc có 19.314 nhãn 1 và 4.172 nhãn 0, tương ứng khoảng 82,2\% và 17,8\%; tỷ lệ sau lọc có thể thay đổi nhẹ.
 
+% BEGIN NOTEBOOK CELL comments-11
+\par\medskip\noindent\textbf{Cell 11 --- EDA (notebook gốc).}
+\begin{NotebookCode}
+fig, axes = plt.subplots(2, 2, figsize=(15, 10))
+axes = axes.ravel()
+
+label_counts = df_model["label"].value_counts().sort_index()
+axes[0].bar(["Không recommend", "Recommend"], label_counts.values, color=["#E45756", "#4C78A8"])
+axes[0].set_title("Phân phối nhãn Recommended IND")
+axes[0].set_ylabel("Số review")
+
+rating_counts = df_model["Rating"].value_counts().sort_index()
+axes[1].bar(rating_counts.index.astype(str), rating_counts.values, color="#F58518")
+axes[1].set_title("Phân phối Rating")
+axes[1].set_xlabel("Rating")
+axes[1].set_ylabel("Số review")
+
+for label, name, color in [(0, "Không recommend", "#E45756"), (1, "Recommend", "#4C78A8")]:
+    subset = df_model.loc[df_model["label"] == label, "word_count"]
+    axes[2].hist(subset, bins=35, alpha=0.6, label=name, color=color)
+axes[2].set_title("Độ dài review theo nhãn")
+axes[2].set_xlabel("Số từ sau cleaning")
+axes[2].set_ylabel("Số review")
+axes[2].legend()
+
+department_label_rate = pd.crosstab(df_model["Department Name"], df_model["label"], normalize="index")
+department_label_rate = department_label_rate.sort_values(1, ascending=False)
+department_label_rate.plot(kind="bar", ax=axes[3], color=["#E45756", "#4C78A8"])
+axes[3].set_title("Tỷ lệ recommend theo Department")
+axes[3].set_xlabel("Department Name")
+axes[3].set_ylabel("Tỷ lệ")
+axes[3].legend(["Không recommend", "Recommend"])
+axes[3].tick_params(axis="x", rotation=30)
+
+plt.tight_layout()
+save_current_figure("customer_comments_eda_overview.png")
+plt.show()
+\end{NotebookCode}
+\noindent\textit{Output hình của cell: Hình~\ref{fig:comments-eda}.}
+% END NOTEBOOK CELL comments-11
+
 \sourcefig{../Assignment 03/images/generated/customer_comments_eda_overview.png}{Phân bố nhãn, độ dài nhận xét và các thống kê mô tả của customer comments.}{fig:comments-eda}
 \sourcefig[0.88\textwidth]{../Assignment 03/images/generated/customer_comments_top_words_by_label.png}{Các từ xuất hiện nhiều theo lớp nhãn; tần suất từ chỉ mô tả dữ liệu, chưa chứng minh giá trị dự báo.}{fig:comments-words}
 
 Văn bản được chuẩn hóa rồi chuyển sang TF-IDF tối đa 1.000 chiều. Với từ $t$ trong tài liệu $d$, TF-IDF tăng theo tần suất của từ trong $d$ nhưng giảm nếu từ xuất hiện ở nhiều tài liệu. Bộ từ vựng phải được fit trên train; validation và test chỉ được biến đổi bằng bộ từ vựng đã học. Do ma trận này thưa và có nhiều chiều, Multinomial Naive Bayes là baseline phù hợp. Logistic Regression là baseline phân biệt tuyến tính, còn MLP NumPy học thêm tương tác phi tuyến của các đặc trưng văn bản.
 
+% BEGIN NOTEBOOK CELL comments-21
+\par\medskip\noindent\textbf{Cell 21 --- huấn luyện baseline và đánh giá (notebook gốc).}
+\begin{NotebookCode}
+X_train_dense = X_train_tfidf.toarray().astype(np.float32)
+X_test_dense = X_test_tfidf.toarray().astype(np.float32)
+
+baseline_models = {
+    "Logistic Regression": {
+        "model": LogisticRegression(
+            max_iter=1000,
+            class_weight="balanced",
+            random_state=RANDOM_STATE,
+        ),
+        "train_X": X_train_tfidf,
+        "test_X": X_test_tfidf,
+    },
+    "Multinomial Naive Bayes": {
+        "model": MultinomialNB(alpha=1.0),
+        "train_X": X_train_tfidf,
+        "test_X": X_test_tfidf,
+    },
+    "Random Forest": {
+        "model": RandomForestClassifier(
+            n_estimators=100,
+            max_depth=24,
+            min_samples_leaf=2,
+            class_weight="balanced_subsample",
+            n_jobs=-1,
+            random_state=RANDOM_STATE,
+        ),
+        "train_X": X_train_dense,
+        "test_X": X_test_dense,
+    },
+}
+
+benchmark_results = []
+test_predictions = {}
+
+for model_name, config in baseline_models.items():
+    model = config["model"]
+    train_X = config["train_X"]
+    test_X = config["test_X"]
+
+    print(f"Training {model_name}...")
+    start = time.perf_counter()
+    model.fit(train_X, y_train)
+    train_time = time.perf_counter() - start
+
+    start = time.perf_counter()
+    y_prob = positive_probability(model, test_X)
+    predict_time = time.perf_counter() - start
+
+    result = evaluate_classifier(model_name, y_test, y_prob, train_time, predict_time)
+    benchmark_results.append(result)
+    test_predictions[model_name] = {
+        "probability": y_prob,
+        "prediction": (y_prob >= 0.5).astype(int),
+    }
+
+    print(f"  Test F1-Score: {result['F1-Score']:.4f}, ROC-AUC: {result['ROC-AUC']:.4f}")
+
+baseline_results_df = display_classification_results(benchmark_results)
+\end{NotebookCode}
+\noindent\textit{Output của cell:}
+\begin{NotebookOutput}
+Training Logistic Regression...
+  Test F1-Score: 0.9156, ROC-AUC: 0.9348
+Training Multinomial Naive Bayes...
+  Test F1-Score: 0.9212, ROC-AUC: 0.9299
+Training Random Forest...
+  Test F1-Score: 0.9074, ROC-AUC: 0.9016
+
+index=0; Model=Multinomial Naive Bayes; Accuracy=0.8618; Precision=0.8643; Recall=0.9860; F1-Score=0.9212
+  ROC-AUC=0.9299; Train time (s)=0.002; Predict time (s)=0.001
+index=1; Model=Logistic Regression; Accuracy=0.8686; Precision=0.9659; Recall=0.8703; F1-Score=0.9156
+  ROC-AUC=0.9348; Train time (s)=0.024; Predict time (s)=0.000
+index=2; Model=Random Forest; Accuracy=0.8527; Precision=0.9353; Recall=0.8811; F1-Score=0.9074
+  ROC-AUC=0.9016; Train time (s)=1.341; Predict time (s)=0.026
+\end{NotebookOutput}
+% END NOTEBOOK CELL comments-21
+
+% BEGIN NOTEBOOK CELL comments-25
+\par\medskip\noindent\textbf{Cell 25 --- huấn luyện MLP NumPy (notebook gốc).}
+\begin{NotebookCode}
+mlp = NumpyMLPTextClassifier(
+    hidden_layers=(64, 16),
+    learning_rate=0.05,
+    epochs=20,
+    batch_size=256,
+    l2=1e-4,
+    random_state=RANDOM_STATE,
+    verbose=True,
+)
+
+start = time.perf_counter()
+mlp.fit(X_train_dense, y_train)
+mlp_train_time = time.perf_counter() - start
+
+start = time.perf_counter()
+mlp_y_prob = mlp.predict_proba(X_test_dense)
+mlp_predict_time = time.perf_counter() - start
+
+mlp_result = evaluate_classifier(
+    "NumPy MLP (1000-64-16-1)",
+    y_test,
+    mlp_y_prob,
+    mlp_train_time,
+    mlp_predict_time,
+)
+
+benchmark_results.append(mlp_result)
+test_predictions["NumPy MLP (1000-64-16-1)"] = {
+    "probability": mlp_y_prob,
+    "prediction": (mlp_y_prob >= 0.5).astype(int),
+}
+
+print(f"Test F1-Score: {mlp_result['F1-Score']:.4f}, ROC-AUC: {mlp_result['ROC-AUC']:.4f}")
+\end{NotebookCode}
+\noindent\textit{Output của cell:}
+\begin{NotebookOutput}
+Epoch 001 | loss=0.7007 | train_acc=0.5058 | train_f1=0.6133
+Epoch 005 | loss=0.6911 | train_acc=0.6987 | train_f1=0.7913
+Epoch 010 | loss=0.6177 | train_acc=0.7787 | train_f1=0.8482
+Epoch 015 | loss=0.4049 | train_acc=0.8577 | train_f1=0.9079
+Epoch 020 | loss=0.3274 | train_acc=0.8755 | train_f1=0.9202
+Test F1-Score: 0.9091, ROC-AUC: 0.9297
+\end{NotebookOutput}
+% END NOTEBOOK CELL comments-25
+
 \begin{table}[htbp]\centering\caption{Ba mô hình được chọn trên customer comments (test set)}\label{tab:comments-results}
 \resizebox{\textwidth}{!}{\begin{tabular}{lrrrrrr}\toprule
 \textbf{Mô hình} & \textbf{Accuracy} & \textbf{Precision} & \textbf{Recall} & \textbf{F1} & \textbf{ROC-AUC} & \textbf{Train (s)}\\\midrule
-Multinomial Naive Bayes & 0.8618 & 0.8643 & \textbf{0.9860} & \textbf{0.9212} & 0.9299 & \textbf{0.0020}\\
-Logistic Regression & \textbf{0.8686} & \textbf{0.9659} & 0.8703 & 0.9156 & \textbf{0.9348} & 0.0222\\
-NumPy MLP & 0.8591 & 0.9640 & 0.8601 & 0.9091 & 0.9297 & 0.6906\\\bottomrule\end{tabular}}
+Multinomial Naive Bayes & 0.8618 & 0.8643 & \textbf{0.9860} & \textbf{0.9212} & 0.9299 & \textbf{0.0015}\\
+Logistic Regression & \textbf{0.8686} & \textbf{0.9659} & 0.8703 & 0.9156 & \textbf{0.9348} & 0.0244\\
+NumPy MLP & 0.8591 & 0.9640 & 0.8601 & 0.9091 & 0.9297 & 0.6276\\\bottomrule\end{tabular}}
 \end{table}
 
 Naive Bayes đạt $F_1$ và recall cao nhất trong ba mô hình, nhưng precision thấp hơn Logistic Regression và MLP. Điều này có nghĩa nó gần như không bỏ sót review khuyến nghị, đổi lại nhận nhầm thêm một phần review không khuyến nghị. Nếu hệ thống chỉ muốn hiển thị review thật sự tích cực, Logistic Regression có thể thích hợp hơn vì precision đạt 0.9659. MLP không vượt baseline tuyến tính trong lần chạy này, cho thấy độ phức tạp lớn hơn không mặc nhiên đem lại chất lượng cao hơn trên TF-IDF 1.000 chiều.
@@ -310,17 +484,201 @@ Ma trận nhầm lẫn nên được đọc theo từng hàng nhãn thật vì l
 \datasetlink{https://www.kaggle.com/datasets/iammustafatz/diabetes-prediction-dataset}
 Tệp \texttt{diabetes\_prediction\_dataset.csv} gồm 100.000 dòng và chín cột: tám biến đầu vào cùng nhãn \texttt{diabetes}. Các đặc trưng bao gồm tuổi, BMI, tình trạng tăng huyết áp, bệnh tim, tiền sử hút thuốc, HbA1c và đường huyết. Một mẫu đầu tiên có giới tính nữ, tuổi 80, BMI 25.19, HbA1c 6.6, đường huyết 140 và nhãn 0. Có 8.500 dòng dương (8,5\%) và 91.500 dòng âm (91,5\%), tạo ra chênh lệch lớp rất lớn.
 
+% BEGIN NOTEBOOK CELL diabetes03-9
+\par\medskip\noindent\textbf{Cell 9 --- EDA (notebook gốc).}
+\begin{NotebookCode}
+fig, axes = plt.subplots(2, 3, figsize=(16, 9))
+axes = axes.ravel()
+
+target_counts = df["diabetes"].value_counts().sort_index()
+axes[0].bar(["Không diabetes", "Diabetes"], target_counts.values, color=["#4C78A8", "#F58518"])
+axes[0].set_title("Phân phối target")
+axes[0].set_ylabel("Số mẫu")
+
+numeric_for_plot = ["age", "bmi", "HbA1c_level", "blood_glucose_level", "hypertension"]
+for ax, col in zip(axes[1:], numeric_for_plot):
+    for target_value, label, color in [(0, "Không diabetes", "#4C78A8"), (1, "Diabetes", "#F58518")]:
+        ax.hist(
+            df.loc[df["diabetes"] == target_value, col],
+            bins=30,
+            alpha=0.55,
+            density=True,
+            label=label,
+            color=color,
+        )
+    ax.set_title(f"Phân phối {col}")
+    ax.legend()
+
+plt.tight_layout()
+save_current_figure("diabetes_large_eda_numeric_distributions.png")
+plt.show()
+\end{NotebookCode}
+\noindent\textit{Output hình của cell: Hình~\ref{fig:diabetes-numeric}.}
+% END NOTEBOOK CELL diabetes03-9
+
 \sourcefig{../Assignment 03/images/generated/diabetes_large_eda_numeric_distributions.png}{Phân phối biến số trên diabetes large theo nhãn.}{fig:diabetes-numeric}
 \sourcefig{../Assignment 03/images/generated/diabetes_large_eda_categorical_rates.png}{Tỷ lệ tiểu đường theo các biến phân loại trong dữ liệu khảo sát.}{fig:diabetes-categorical}
 
 Notebook one-hot encode các biến phân loại, chuẩn hóa biến số và chia train, validation, test theo tỷ lệ 70/15/15 có phân tầng. Các bước có trạng thái chỉ được fit trên train. Logistic Regression và Decision Tree dùng trọng số lớp cân bằng, trong khi MLP NumPy áp trọng số trong loss; cách này hướng quá trình tối ưu quan tâm hơn tới lớp dương hiếm. Threshold dự đoán được chọn trên validation thay vì cố định 0.5. Sau đó test set độc lập mới được dùng để báo cáo kết quả.
 
+% BEGIN NOTEBOOK CELL diabetes03-18
+\par\medskip\noindent\textbf{Cell 18 --- huấn luyện baseline và chọn ngưỡng (notebook gốc).}
+\begin{NotebookCode}
+baseline_models = {
+    "Logistic Regression": LogisticRegression(
+        max_iter=1000,
+        class_weight="balanced",
+        random_state=RANDOM_STATE,
+    ),
+    "Gaussian Naive Bayes": GaussianNB(),
+    "Decision Tree": DecisionTreeClassifier(
+        max_depth=8,
+        min_samples_leaf=50,
+        class_weight="balanced",
+        random_state=RANDOM_STATE,
+    ),
+}
+
+benchmark_results = []
+test_predictions = {}
+validation_predictions = {}
+
+for model_name, model in baseline_models.items():
+    print(f"Training {model_name}...")
+
+    start = time.perf_counter()
+    model.fit(X_train, y_train)
+    train_time = time.perf_counter() - start
+
+    val_prob = predict_positive_probability(model, X_val)
+    best_threshold, best_val_f1 = find_best_threshold(y_val, val_prob)
+
+    start = time.perf_counter()
+    test_prob = predict_positive_probability(model, X_test)
+    predict_time = time.perf_counter() - start
+
+    result = evaluate_binary_model(
+        model_name,
+        y_test,
+        test_prob,
+        best_threshold,
+        train_time,
+        predict_time,
+    )
+    benchmark_results.append(result)
+    validation_predictions[model_name] = val_prob
+    test_predictions[model_name] = {
+        "probability": test_prob,
+        "prediction": (test_prob >= best_threshold).astype(int),
+        "threshold": best_threshold,
+    }
+
+    print(f"  Best validation F1: {best_val_f1:.4f} tại threshold={best_threshold:.3f}")
+    print(f"  Test F1: {result['F1']:.4f}, PR-AUC: {result['PR-AUC']:.4f}")
+
+baseline_results_df = display_results(benchmark_results)
+\end{NotebookCode}
+\noindent\textit{Output của cell:}
+\begin{NotebookOutput}
+Training Logistic Regression...
+  Best validation F1: 0.7311 tại threshold=0.875
+  Test F1: 0.7300, PR-AUC: 0.8209
+Training Gaussian Naive Bayes...
+  Best validation F1: 0.4673 tại threshold=0.950
+  Test F1: 0.4507, PR-AUC: 0.5043
+Training Decision Tree...
+  Best validation F1: 0.8140 tại threshold=0.890
+  Test F1: 0.8039, PR-AUC: 0.8514
+
+index=0; Model=Decision Tree; Threshold=0.890; Accuracy=0.9721; Precision=1.0000; Recall=0.6722
+  F1=0.8039; ROC-AUC=0.9731; PR-AUC=0.8514; Train time (s)=0.071; Predict time (s)=0.000
+index=1; Model=Logistic Regression; Threshold=0.875; Accuracy=0.9573; Precision=0.7900; Recall=0.6784
+  F1=0.7300; ROC-AUC=0.9629; PR-AUC=0.8209; Train time (s)=0.032; Predict time (s)=0.000
+index=2; Model=Gaussian Naive Bayes; Threshold=0.950; Accuracy=0.8265; Precision=0.3083; Recall=0.8376
+  F1=0.4507; ROC-AUC=0.9093; PR-AUC=0.5043; Train time (s)=0.010; Predict time (s)=0.003
+\end{NotebookOutput}
+% END NOTEBOOK CELL diabetes03-18
+
+% BEGIN NOTEBOOK CELL diabetes03-22
+\par\medskip\noindent\textbf{Cell 22 --- huấn luyện MLP NumPy (notebook gốc).}
+\begin{NotebookCode}
+mlp = NumpyMLPClassifier(
+    hidden_layers=(64, 32, 16),
+    learning_rate=0.01,
+    epochs=80,
+    batch_size=1024,
+    l2=1e-4,
+    patience=10,
+    min_delta=1e-4,
+    random_state=RANDOM_STATE,
+    verbose=True,
+)
+
+start = time.perf_counter()
+mlp.fit(X_train, y_train, X_val, y_val)
+mlp_train_time = time.perf_counter() - start
+
+mlp_val_prob = mlp.predict_proba(X_val)
+mlp_threshold, mlp_val_f1 = find_best_threshold(y_val, mlp_val_prob)
+
+start = time.perf_counter()
+mlp_test_prob = mlp.predict_proba(X_test)
+mlp_predict_time = time.perf_counter() - start
+
+mlp_result = evaluate_binary_model(
+    "NumPy MLP (64-32-16)",
+    y_test,
+    mlp_test_prob,
+    mlp_threshold,
+    mlp_train_time,
+    mlp_predict_time,
+)
+
+benchmark_results.append(mlp_result)
+validation_predictions["NumPy MLP (64-32-16)"] = mlp_val_prob
+test_predictions["NumPy MLP (64-32-16)"] = {
+    "probability": mlp_test_prob,
+    "prediction": (mlp_test_prob >= mlp_threshold).astype(int),
+    "threshold": mlp_threshold,
+}
+
+print(f"Best epoch: {mlp.best_epoch_}")
+print(f"Best validation PR-AUC: {mlp.best_validation_pr_auc_:.4f}")
+print(f"Best validation F1: {mlp_val_f1:.4f} tại threshold={mlp_threshold:.3f}")
+print(f"Test F1: {mlp_result['F1']:.4f}, PR-AUC: {mlp_result['PR-AUC']:.4f}")
+\end{NotebookCode}
+\noindent\textit{Output của cell:}
+\begin{NotebookOutput}
+Epoch 001 | train_loss=0.4545 | val_loss=0.4528 | val_f1=0.5466 | val_pr_auc=0.5497
+Epoch 005 | train_loss=0.2812 | val_loss=0.2779 | val_f1=0.6764 | val_pr_auc=0.7671
+Epoch 010 | train_loss=0.2614 | val_loss=0.2585 | val_f1=0.6977 | val_pr_auc=0.7901
+Epoch 015 | train_loss=0.2558 | val_loss=0.2527 | val_f1=0.7073 | val_pr_auc=0.7994
+Epoch 020 | train_loss=0.2524 | val_loss=0.2503 | val_f1=0.7115 | val_pr_auc=0.8027
+Epoch 025 | train_loss=0.2502 | val_loss=0.2477 | val_f1=0.7162 | val_pr_auc=0.8083
+Epoch 030 | train_loss=0.2480 | val_loss=0.2463 | val_f1=0.7210 | val_pr_auc=0.8101
+Epoch 035 | train_loss=0.2465 | val_loss=0.2453 | val_f1=0.7233 | val_pr_auc=0.8117
+Epoch 040 | train_loss=0.2448 | val_loss=0.2437 | val_f1=0.7273 | val_pr_auc=0.8144
+Epoch 045 | train_loss=0.2433 | val_loss=0.2422 | val_f1=0.7282 | val_pr_auc=0.8166
+Epoch 050 | train_loss=0.2425 | val_loss=0.2420 | val_f1=0.7307 | val_pr_auc=0.8165
+Epoch 055 | train_loss=0.2409 | val_loss=0.2402 | val_f1=0.7315 | val_pr_auc=0.8189
+Epoch 060 | train_loss=0.2398 | val_loss=0.2390 | val_f1=0.7327 | val_pr_auc=0.8208
+Epoch 065 | train_loss=0.2387 | val_loss=0.2382 | val_f1=0.7343 | val_pr_auc=0.8215
+Epoch 070 | train_loss=0.2377 | val_loss=0.2374 | val_f1=0.7363 | val_pr_auc=0.8225
+Epoch 075 | train_loss=0.2367 | val_loss=0.2367 | val_f1=0.7368 | val_pr_auc=0.8227
+Epoch 080 | train_loss=0.2359 | val_loss=0.2357 | val_f1=0.7367 | val_pr_auc=0.8246
+Best epoch: 80
+Best validation PR-AUC: 0.8246
+Best validation F1: 0.7367 tại threshold=0.845
+Test F1: 0.7312, PR-AUC: 0.8265
+\end{NotebookOutput}
+% END NOTEBOOK CELL diabetes03-22
+
 \begin{table}[htbp]\centering\caption{Ba mô hình được chọn trên diabetes large (test set)}\label{tab:diabetes-results}
 \resizebox{\textwidth}{!}{\begin{tabular}{lrrrrrrr}\toprule
 \textbf{Mô hình} & \textbf{Ngưỡng} & \textbf{Precision} & \textbf{Recall} & \textbf{F1} & \textbf{ROC-AUC} & \textbf{PR-AUC} & \textbf{Train (s)}\\\midrule
-Decision Tree & 0.890 & \textbf{1.0000} & 0.6722 & \textbf{0.8039} & \textbf{0.9731} & \textbf{0.8514} & 0.0635\\
-NumPy MLP (64-32-16) & 0.845 & 0.7593 & \textbf{0.7051} & 0.7312 & 0.9658 & 0.8265 & 17.2372\\
-Logistic Regression & 0.875 & 0.7900 & 0.6784 & 0.7300 & 0.9629 & 0.8209 & \textbf{0.0341}\\\bottomrule\end{tabular}}
+Decision Tree & 0.890 & \textbf{1.0000} & 0.6722 & \textbf{0.8039} & \textbf{0.9731} & \textbf{0.8514} & 0.0709\\
+NumPy MLP (64-32-16) & 0.845 & 0.7593 & \textbf{0.7051} & 0.7312 & 0.9658 & 0.8265 & 18.7019\\
+Logistic Regression & 0.875 & 0.7900 & 0.6784 & 0.7300 & 0.9629 & 0.8209 & \textbf{0.0318}\\\bottomrule\end{tabular}}
 \end{table}
 
 Decision Tree dẫn đầu theo $F_1$ và PR-AUC. Precision bằng 1.0000 tại ngưỡng 0.890 là kết quả trên tập test cụ thể, không phải cam kết rằng ngoài thực tế sẽ không có dương tính giả. Recall 0.6722 cho thấy khoảng một phần ba ca dương chưa được phát hiện. MLP có recall cao hơn trong ba mô hình nhưng precision thấp hơn; đây là đánh đổi quan trọng nếu mục đích là sàng lọc. Logistic Regression huấn luyện nhanh nhất và có $F_1$ sát MLP, nên là baseline khó bỏ qua.
@@ -337,10 +695,192 @@ Về mặt ứng dụng, chỉ số y sinh nhạy cảm với khác biệt giữ
 \datasetlink{https://www.kaggle.com/datasets/ahmedshahriarsakib/usa-real-estate-dataset}
 Tệp \texttt{realtor-data.zip.csv} có 2.226.382 dòng và 12 cột. Notebook lấy mẫu 200.000 dòng để giảm chi phí xử lý và huấn luyện. Target là \texttt{price}; các đặc trưng gồm số phòng ngủ, phòng tắm, diện tích nhà, diện tích đất, trạng thái, thành phố, bang, mã ZIP và ngày bán trước. Một dòng mẫu đầu có trạng thái \texttt{for\_sale}, giá 105.000 USD, ba phòng ngủ, hai phòng tắm, diện tích 920 foot vuông ở Puerto Rico. Trong CSV gốc, khoảng 1,389 triệu dòng có trạng thái \texttt{for\_sale}, 812 nghìn \texttt{sold} và 25 nghìn \texttt{ready\_to\_build}; các nhóm này có thể có ý nghĩa khác nhau đối với giá.
 
+% BEGIN NOTEBOOK CELL house-9
+\par\medskip\noindent\textbf{Cell 9 --- EDA (notebook gốc).}
+\begin{NotebookCode}
+price_numeric = pd.to_numeric(df_raw["price"], errors="coerce")
+valid_price = price_numeric[price_numeric > 0]
+
+fig, axes = plt.subplots(2, 2, figsize=(15, 10))
+axes = axes.ravel()
+
+axes[0].hist(np.log1p(valid_price), bins=60, color="#4C78A8", alpha=0.85)
+axes[0].set_title("Phân phối log1p(price)")
+axes[0].set_xlabel("log1p(price)")
+axes[0].set_ylabel("Số mẫu")
+
+missing_percent = df_raw.isna().mean().sort_values(ascending=False) * 100
+axes[1].barh(missing_percent.index, missing_percent.values, color="#F58518")
+axes[1].set_title("Missing values theo cột")
+axes[1].set_xlabel("Missing (%)")
+
+df_raw["status"].value_counts().head(10).plot(kind="bar", ax=axes[2], color="#54A24B")
+axes[2].set_title("Top status")
+axes[2].set_xlabel("status")
+axes[2].set_ylabel("Số mẫu")
+axes[2].tick_params(axis="x", rotation=20)
+
+df_raw["state"].value_counts().head(12).plot(kind="bar", ax=axes[3], color="#E45756")
+axes[3].set_title("Top state")
+axes[3].set_xlabel("state")
+axes[3].set_ylabel("Số mẫu")
+axes[3].tick_params(axis="x", rotation=45)
+
+plt.tight_layout()
+save_current_figure("house_price_eda_overview.png")
+plt.show()
+\end{NotebookCode}
+\noindent\textit{Output hình của cell: Hình~\ref{fig:house-eda}.}
+% END NOTEBOOK CELL house-9
+
 \sourcefig{../Assignment 03/images/generated/house_price_eda_overview.png}{Khảo sát giá nhà, dữ liệu thiếu và đặc trưng bất động sản.}{fig:house-eda}
 \sourcefig[0.88\textwidth]{../Assignment 03/images/generated/house_price_numeric_feature_distributions.png}{Phân phối các biến số chính trong mẫu nhà được xử lý.}{fig:house-numeric}
 
 Giá nhà lệch phải và có ngoại lệ lớn, nên notebook học trên $\log(1+\texttt{price})$ rồi đổi ngược về USD khi đánh giá. Các cột phân loại có số giá trị rất lớn như thành phố hoặc ZIP được biểu diễn gọn hơn bằng frequency encoding; thời gian bán trước được tách thành đặc trưng liên quan. Biến đổi này không nên fit trên toàn bộ dữ liệu trước khi chia, vì thống kê tần suất có thể làm lộ thông tin của test. Mô hình hồi quy phải học đồng thời quan hệ giữa diện tích, vị trí, loại giao dịch và giá trị tài sản.
+
+% BEGIN NOTEBOOK CELL house-21
+\par\medskip\noindent\textbf{Cell 21 --- huấn luyện baseline hồi quy (notebook gốc).}
+\begin{NotebookCode}
+baseline_models = {
+    "Ridge Regression": Ridge(alpha=1.0),
+    "Decision Tree Regressor": DecisionTreeRegressor(
+        max_depth=18,
+        min_samples_leaf=50,
+        random_state=RANDOM_STATE,
+    ),
+    "Random Forest Regressor": RandomForestRegressor(
+        n_estimators=60,
+        max_depth=16,
+        min_samples_leaf=30,
+        max_features="sqrt",
+        n_jobs=-1,
+        random_state=RANDOM_STATE,
+    ),
+}
+
+benchmark_results = []
+test_predictions = {}
+validation_predictions = {}
+
+for model_name, model in baseline_models.items():
+    print(f"Training {model_name}...")
+
+    start = time.perf_counter()
+    model.fit(X_train, y_train_log)
+    train_time = time.perf_counter() - start
+
+    val_pred_log = model.predict(X_val)
+
+    start = time.perf_counter()
+    test_pred_log = model.predict(X_test)
+    predict_time = time.perf_counter() - start
+
+    result = evaluate_regression_model(
+        model_name,
+        y_test,
+        test_pred_log,
+        train_time,
+        predict_time,
+    )
+    benchmark_results.append(result)
+    validation_predictions[model_name] = val_pred_log
+    test_predictions[model_name] = {
+        "log_prediction": test_pred_log,
+        "price_prediction": log_price_to_price(test_pred_log),
+    }
+
+    val_metrics = regression_metrics(y_val, val_pred_log)
+    print(f"  Validation RMSLE: {val_metrics['RMSLE']:.4f}, MAE: ${val_metrics['MAE']:,.0f}")
+    print(f"  Test RMSLE: {result['RMSLE']:.4f}, MAE: ${result['MAE']:,.0f}")
+
+baseline_results_df = display_regression_results(benchmark_results)
+\end{NotebookCode}
+\noindent\textit{Output của cell:}
+\begin{NotebookOutput}
+Training Ridge Regression...
+  Validation RMSLE: 0.7694, MAE: $264,134
+  Test RMSLE: 0.7717, MAE: $268,912
+Training Decision Tree Regressor...
+  Validation RMSLE: 0.7156, MAE: $238,756
+  Test RMSLE: 0.7205, MAE: $241,108
+Training Random Forest Regressor...
+  Validation RMSLE: 0.7183, MAE: $245,358
+  Test RMSLE: 0.7216, MAE: $247,668
+
+index=0; Model=Decision Tree Regressor; MAE=$241,108; RMSE=$1,169,286; MedianAE=$87,561; MAPE=4952.28%
+  RMSLE=0.7205; R2=0.2408; Train time (s)=1.107; Predict time (s)=0.002
+index=1; Model=Random Forest Regressor; MAE=$247,668; RMSE=$1,241,475; MedianAE=$87,537; MAPE=2614.12%
+  RMSLE=0.7216; R2=0.1442; Train time (s)=1.010; Predict time (s)=0.031
+index=2; Model=Ridge Regression; MAE=$268,912; RMSE=$1,228,158; MedianAE=$92,871; MAPE=2871.93%
+  RMSLE=0.7717; R2=0.1624; Train time (s)=0.416; Predict time (s)=0.000
+\end{NotebookOutput}
+% END NOTEBOOK CELL house-21
+
+% BEGIN NOTEBOOK CELL house-25
+\par\medskip\noindent\textbf{Cell 25 --- huấn luyện MLP NumPy (notebook gốc).}
+\begin{NotebookCode}
+mlp = NumpyMLPRegressor(
+    hidden_layers=(128, 64, 32),
+    learning_rate=0.001,
+    epochs=60,
+    batch_size=2048,
+    l2=1e-4,
+    patience=8,
+    min_delta=1e-4,
+    random_state=RANDOM_STATE,
+    verbose=True,
+)
+
+start = time.perf_counter()
+mlp.fit(X_train, y_train_log, X_val, y_val_log)
+mlp_train_time = time.perf_counter() - start
+
+mlp_val_pred_log = mlp.predict(X_val)
+
+start = time.perf_counter()
+mlp_test_pred_log = mlp.predict(X_test)
+mlp_predict_time = time.perf_counter() - start
+
+mlp_result = evaluate_regression_model(
+    "NumPy MLP (128-64-32)",
+    y_test,
+    mlp_test_pred_log,
+    mlp_train_time,
+    mlp_predict_time,
+)
+
+benchmark_results.append(mlp_result)
+validation_predictions["NumPy MLP (128-64-32)"] = mlp_val_pred_log
+test_predictions["NumPy MLP (128-64-32)"] = {
+    "log_prediction": mlp_test_pred_log,
+    "price_prediction": log_price_to_price(mlp_test_pred_log),
+}
+
+print(f"Best epoch: {mlp.best_epoch_}")
+print(f"Best validation RMSLE: {mlp.best_validation_rmsle_:.4f}")
+print(f"Test RMSLE: {mlp_result['RMSLE']:.4f}, MAE: ${mlp_result['MAE']:,.0f}")
+\end{NotebookCode}
+\noindent\textit{Output của cell:}
+\begin{NotebookOutput}
+Epoch 001 | train_loss=0.3425 | val_rmsle=0.7666 | val_mae=$268,726
+Epoch 005 | train_loss=0.1998 | val_rmsle=0.6864 | val_mae=$235,936
+Epoch 010 | train_loss=0.1892 | val_rmsle=0.6783 | val_mae=$233,038
+Epoch 015 | train_loss=0.1786 | val_rmsle=0.6651 | val_mae=$225,513
+Epoch 020 | train_loss=0.1735 | val_rmsle=0.6624 | val_mae=$225,419
+Epoch 025 | train_loss=0.1719 | val_rmsle=0.6639 | val_mae=$226,255
+Epoch 030 | train_loss=0.1711 | val_rmsle=0.6604 | val_mae=$224,019
+Epoch 035 | train_loss=0.1660 | val_rmsle=0.6595 | val_mae=$220,152
+Epoch 040 | train_loss=0.1648 | val_rmsle=0.6595 | val_mae=$221,415
+Epoch 045 | train_loss=0.1634 | val_rmsle=0.6587 | val_mae=$218,413
+Epoch 050 | train_loss=0.1615 | val_rmsle=0.6580 | val_mae=$221,877
+Epoch 055 | train_loss=0.1604 | val_rmsle=0.6579 | val_mae=$218,556
+Epoch 060 | train_loss=0.1621 | val_rmsle=0.6629 | val_mae=$231,845
+Early stopping tại epoch 60. Best epoch: 52
+Best epoch: 52
+Best validation RMSLE: 0.6561
+Test RMSLE: 0.6578, MAE: $217,538
+\end{NotebookOutput}
+% END NOTEBOOK CELL house-25
 
 \begin{table}[htbp]\centering\caption{Ba mô hình được chọn trên house price (test set)}\label{tab:house-results}
 \resizebox{\textwidth}{!}{\begin{tabular}{lrrrrrr}\toprule
@@ -428,24 +968,219 @@ Thời gian dự đoán cũng khác thời gian huấn luyện. Một app localh
 \datasetlink{https://keras.io/api/datasets/mnist/}
 MNIST gồm 60.000 ảnh train gốc và 10.000 ảnh test, mỗi ảnh xám $28\times28$ với nhãn từ 0 đến 9. Trong Hình~\ref{fig:mnist-samples}, mỗi cột cho một kiểu nét viết; sự khác biệt về nét, độ nghiêng và độ dày tạo ra các trường hợp khó dù nền ảnh đơn giản. Tập train gốc có lớp 1 nhiều nhất, 6.742 ảnh, còn lớp 5 có 5.421 ảnh. Mức chênh này không quá lớn nhưng đủ để Macro-F1 có ý nghĩa hơn việc chỉ xem accuracy.
 
+% BEGIN NOTEBOOK CELL mnist-14
+\par\medskip\noindent\textbf{Cell 14 --- EDA (notebook gốc).}
+\begin{NotebookCode}
+# Hiển thị một ảnh đại diện cho mỗi lớp.
+fig, axes = plt.subplots(2, 5, figsize=(13, 5))
+for label, ax in enumerate(axes.ravel()):
+    image = x_train_full[np.flatnonzero(y_train_full == label)[0]]
+    if image.shape[-1] == 1:
+        ax.imshow(image.squeeze(-1), cmap="gray")
+    else:
+        ax.imshow(image)
+    ax.set_title(f"{label}: {CLASS_NAMES[label]}")
+    ax.axis("off")
+fig.suptitle(f"Ảnh mẫu của 10 lớp - {DATASET_NAME}", fontsize=14)
+plt.tight_layout()
+plt.show()
+
+train_counts = np.bincount(y_train_full, minlength=10)
+test_counts = np.bincount(y_test_full, minlength=10)
+distribution_df = pd.DataFrame({
+    "class_id": np.arange(10),
+    "class_name": CLASS_NAMES,
+    "train_count": train_counts,
+    "test_count": test_counts,
+})
+display(distribution_df)
+
+ax = distribution_df.set_index("class_name")[["train_count", "test_count"]].plot(
+    kind="bar", figsize=(12, 5), color=["#4C78A8", "#F58518"]
+)
+ax.set_title(f"Phân phối lớp của {DATASET_NAME}")
+ax.set_xlabel("Lớp")
+ax.set_ylabel("Số ảnh")
+plt.xticks(rotation=30, ha="right")
+plt.tight_layout()
+plt.show()
+\end{NotebookCode}
+\noindent\textit{Output của cell:}
+\begin{NotebookOutput}
+index=0; class_id=0; class_name=0; train_count=5923; test_count=980
+index=1; class_id=1; class_name=1; train_count=6742; test_count=1135
+index=2; class_id=2; class_name=2; train_count=5958; test_count=1032
+index=3; class_id=3; class_name=3; train_count=6131; test_count=1010
+index=4; class_id=4; class_name=4; train_count=5842; test_count=982
+index=5; class_id=5; class_name=5; train_count=5421; test_count=892
+index=6; class_id=6; class_name=6; train_count=5918; test_count=958
+index=7; class_id=7; class_name=7; train_count=6265; test_count=1028
+index=8; class_id=8; class_name=8; train_count=5851; test_count=974
+index=9; class_id=9; class_name=9; train_count=5949; test_count=1009
+\end{NotebookOutput}
+\noindent\textit{Output hình của cell: Hình~\ref{fig:mnist-samples}, Hình~\ref{fig:mnist-distribution}.}
+% END NOTEBOOK CELL mnist-14
+
 \sourcefig{../Assignment 04/images/generated/mnist_sample_images.png}{Ảnh mẫu đại diện cho mười lớp chữ số trong MNIST.}{fig:mnist-samples}
 \sourcefig[0.85\textwidth]{../Assignment 04/images/generated/mnist_class_distribution.png}{Phân bố nhãn train và test của MNIST.}{fig:mnist-distribution}
 
 Một mẫu đầu vào cụ thể là ma trận 784 giá trị pixel; output mong đợi là một nhãn 0--9. Các giá trị pixel ban đầu từ 0 đến 255. Trong notebook, mean và độ lệch chuẩn học từ train lần lượt khoảng 0.1307 và 0.3082 sau khi chia 255. CNN NumPy dùng hai tầng tích chập với 8 và 16 filter, hai bước pooling và tầng ẩn 64, tổng 52.138 tham số. Phiên bản PyTorch và Keras dùng hai block convolution--BatchNorm--ReLU--pooling, dropout rồi Dense 128; mỗi mạng khoảng 468 nghìn tham số. Chúng cùng loại kiến trúc nhưng không có số tham số hoàn toàn bằng nhau do chi tiết implementation.
 
+% BEGIN NOTEBOOK CELL mnist-26
+\par\medskip\noindent\textbf{Cell 26 --- huấn luyện CNN NumPy (notebook gốc).}
+\begin{NotebookCode}
+numpy_model = NumpyCNN(
+    input_shape=x_train_numpy.shape[1:],
+    conv_filters=NUMPY_FILTERS,
+    hidden_units=NUMPY_HIDDEN_UNITS,
+    num_classes=10,
+    random_state=RANDOM_STATE,
+)
+print("NumPy CNN parameters:", f"{numpy_model.parameter_count():,}")
+
+start = time.perf_counter()
+numpy_history = train_numpy_cnn(
+    numpy_model,
+    x_train_numpy,
+    y_train_numpy,
+    x_val_numpy,
+    y_val_numpy,
+    epochs=NUMPY_EPOCHS,
+    batch_size=NUMPY_BATCH_SIZE,
+    learning_rate=NUMPY_LEARNING_RATE,
+    weight_decay=NUMPY_WEIGHT_DECAY,
+    dataset_key=DATASET_KEY,
+    random_state=RANDOM_STATE,
+)
+numpy_train_time = time.perf_counter() - start
+
+start = time.perf_counter()
+numpy_test_probabilities = predict_numpy_proba(
+    numpy_model,
+    x_test,
+    batch_size=NUMPY_BATCH_SIZE,
+)
+numpy_predict_time = time.perf_counter() - start
+
+benchmark_results.append(evaluate_predictions(
+    "NumPy CNN from scratch",
+    y_test,
+    numpy_test_probabilities,
+    numpy_train_time,
+    numpy_predict_time,
+    numpy_model.parameter_count(),
+    len(y_train_numpy),
+    numpy_history["best_epoch"],
+    numpy_history["learning_rate"][-1],
+))
+prediction_store["NumPy CNN from scratch"] = numpy_test_probabilities
+history_store["NumPy CNN from scratch"] = numpy_history
+print(
+    f"Train time: {numpy_train_time:.2f}s | Test accuracy: "
+    f"{accuracy_score(y_test, np.argmax(numpy_test_probabilities, axis=1)):.4f}"
+)
+\end{NotebookCode}
+\noindent\textit{Output của cell:}
+\begin{NotebookOutput}
+NumPy CNN parameters: 52,138
+Epoch 001/15 | lr=0.001000 | loss=0.6155 | acc=0.8094 | val_loss=0.1477 | val_acc=0.9573
+Epoch 002/15 | lr=0.000988 | loss=0.1949 | acc=0.9402 | val_loss=0.1124 | val_acc=0.9657
+Epoch 003/15 | lr=0.000953 | loss=0.1435 | acc=0.9526 | val_loss=0.1138 | val_acc=0.9653
+Epoch 004/15 | lr=0.000896 | loss=0.1155 | acc=0.9639 | val_loss=0.0878 | val_acc=0.9780
+Epoch 005/15 | lr=0.000821 | loss=0.1071 | acc=0.9666 | val_loss=0.0717 | val_acc=0.9787
+Epoch 006/15 | lr=0.000731 | loss=0.0893 | acc=0.9718 | val_loss=0.0754 | val_acc=0.9793
+Epoch 007/15 | lr=0.000631 | loss=0.0803 | acc=0.9755 | val_loss=0.0719 | val_acc=0.9797
+Epoch 008/15 | lr=0.000525 | loss=0.0731 | acc=0.9770 | val_loss=0.0713 | val_acc=0.9810
+Epoch 009/15 | lr=0.000419 | loss=0.0674 | acc=0.9789 | val_loss=0.0597 | val_acc=0.9827
+Epoch 010/15 | lr=0.000319 | loss=0.0620 | acc=0.9811 | val_loss=0.0592 | val_acc=0.9827
+Epoch 011/15 | lr=0.000229 | loss=0.0547 | acc=0.9831 | val_loss=0.0588 | val_acc=0.9840
+Epoch 012/15 | lr=0.000154 | loss=0.0532 | acc=0.9841 | val_loss=0.0582 | val_acc=0.9850
+Epoch 013/15 | lr=0.000097 | loss=0.0501 | acc=0.9839 | val_loss=0.0567 | val_acc=0.9853
+Epoch 014/15 | lr=0.000062 | loss=0.0477 | acc=0.9849 | val_loss=0.0581 | val_acc=0.9853
+Epoch 015/15 | lr=0.000050 | loss=0.0453 | acc=0.9852 | val_loss=0.0567 | val_acc=0.9850
+Restored NumPy weights from epoch 13 (val_loss=0.0567).
+Train time: 98.05s | Test accuracy: 0.9850
+\end{NotebookOutput}
+% END NOTEBOOK CELL mnist-26
+
 \sourcefig{../Assignment 04/images/generated/mnist_learning_curves.png}{Loss và accuracy theo epoch của ba CNN trên MNIST.}{fig:mnist-curves}
 
 Learning curve cho thấy cả ba mạng hội tụ, nhưng tốc độ và mức cuối khác nhau. CNN NumPy chọn checkpoint ở epoch 13 theo validation loss; PyTorch đạt validation accuracy tốt nhất tại epoch 14, Keras tại epoch 13. Chọn checkpoint bằng validation tránh việc một epoch cuối kém hơn làm lệch phép thử. Tuy nhiên việc dùng tập NumPy nhỏ hơn khiến không thể dùng thời gian huấn luyện để tuyên bố implementation NumPy nhanh hơn một cách tổng quát.
 
+% BEGIN NOTEBOOK CELL mnist-42
+\par\medskip\noindent\textbf{Cell 42 --- tổng hợp kết quả (notebook gốc).}
+\begin{NotebookCode}
+ordered_columns = [
+    "Model",
+    "Accuracy",
+    "Macro Precision",
+    "Macro Recall",
+    "Macro F1",
+    "Train samples",
+    "Best epoch",
+    "Final LR",
+    "Parameters",
+    "Train time (s)",
+    "Predict time (s)",
+]
+results_df = pd.DataFrame(benchmark_results)[ordered_columns]
+results_df = results_df.sort_values(
+    ["Macro F1", "Accuracy"],
+    ascending=False,
+).reset_index(drop=True)
+display(results_df.style.format({
+    "Accuracy": "{:.4f}",
+    "Macro Precision": "{:.4f}",
+    "Macro Recall": "{:.4f}",
+    "Macro F1": "{:.4f}",
+    "Train samples": "{:,}",
+    "Best epoch": "{:d}",
+    "Final LR": "{:.6f}",
+    "Parameters": "{:,}",
+    "Train time (s)": "{:.2f}",
+    "Predict time (s)": "{:.3f}",
+}))
+
+metric_columns = [
+    "Accuracy",
+    "Macro Precision",
+    "Macro Recall",
+    "Macro F1",
+]
+ax = results_df.set_index("Model")[metric_columns].plot(
+    kind="bar",
+    figsize=(13, 6),
+)
+ax.set_title(
+    f"So sánh ba cách cài đặt CNN trên {DATASET_NAME}"
+)
+ax.set_ylabel("Score")
+ax.set_ylim(0, 1)
+plt.xticks(rotation=15, ha="right")
+plt.tight_layout()
+plt.show()
+\end{NotebookCode}
+\noindent\textit{Output của cell:}
+\begin{NotebookOutput}
+index=0; Model=PyTorch CNN; Accuracy=0.9956; Macro Precision=0.9957; Macro Recall=0.9955; Macro F1=0.9956
+  Train samples=54,000; Best epoch=14; Final LR=0.000090; Parameters=468,010; Train time (s)=100.57; Predict time (s)=0.353
+index=1; Model=TensorFlow/Keras CNN; Accuracy=0.9955; Macro Precision=0.9955; Macro Recall=0.9955; Macro F1=0.9955
+  Train samples=54,000; Best epoch=13; Final LR=0.000027; Parameters=468,394; Train time (s)=482.54; Predict time (s)=1.509
+index=2; Model=NumPy CNN from scratch; Accuracy=0.9850; Macro Precision=0.9848; Macro Recall=0.9849; Macro F1=0.9848
+  Train samples=20,000; Best epoch=13; Final LR=0.000050; Parameters=52,138; Train time (s)=98.05; Predict time (s)=1.375
+\end{NotebookOutput}
+\noindent\textit{Output hình của cell: Hình~\ref{fig:mnist-metric}.}
+% END NOTEBOOK CELL mnist-42
+
 \begin{table}[htbp]\centering\caption{Ba CNN trên full test set MNIST}\label{tab:mnist-results}
 \resizebox{\textwidth}{!}{\begin{tabular}{lrrrrrr}\toprule
 \textbf{Mô hình} & \textbf{Accuracy} & \textbf{Macro-P} & \textbf{Macro-R} & \textbf{Macro-F1} & \textbf{Tham số} & \textbf{Train (s)}\\\midrule
-PyTorch CNN & \textbf{0.9958} & \textbf{0.9959} & \textbf{0.9958} & \textbf{0.9958} & 468.010 & 90.38\\
-Keras CNN & 0.9955 & 0.9955 & 0.9955 & 0.9955 & 468.394 & 399.87\\
-NumPy CNN & 0.9848 & 0.9847 & 0.9847 & 0.9847 & \textbf{52.138} & \textbf{82.86}\\\bottomrule\end{tabular}}
+PyTorch CNN & \textbf{0.9956} & \textbf{0.9957} & \textbf{0.9955} & \textbf{0.9956} & 468.010 & 100.57\\
+Keras CNN & 0.9955 & 0.9955 & 0.9955 & 0.9955 & 468.394 & 482.54\\
+NumPy CNN & 0.9850 & 0.9848 & 0.9849 & 0.9848 & \textbf{52.138} & \textbf{98.05}\\\bottomrule\end{tabular}}
 \end{table}
 
-PyTorch cao hơn Keras 0.0003 Macro-F1, một chênh lệch nhỏ trên tập 10.000 ảnh. CNN NumPy thấp hơn khoảng 1,1 điểm phần trăm nhưng dùng ít ảnh train hơn, mạng nhỏ hơn và chỉ có primitive tự cài đặt. Kết quả 0.9848 vẫn xác nhận pipeline convolution/backprop thủ công hoạt động hiệu quả trên dữ liệu đơn giản. Nếu mục tiêu là học thuật toán, NumPy có giá trị giải thích; nếu mục tiêu là độ chính xác cao với công sức triển khai nhỏ hơn, framework phù hợp hơn.
+PyTorch cao hơn Keras 0.0001 Macro-F1, một chênh lệch nhỏ trên tập 10.000 ảnh. CNN NumPy thấp hơn khoảng 1,1 điểm phần trăm nhưng dùng ít ảnh train hơn, mạng nhỏ hơn và chỉ có primitive tự cài đặt. Kết quả 0.9848 vẫn xác nhận pipeline convolution/backprop thủ công hoạt động hiệu quả trên dữ liệu đơn giản. Nếu mục tiêu là học thuật toán, NumPy có giá trị giải thích; nếu mục tiêu là độ chính xác cao với công sức triển khai nhỏ hơn, framework phù hợp hơn.
 
 \sourcefig{../Assignment 04/images/generated/mnist_metric_comparison.png}{So sánh Accuracy, Macro-Precision, Macro-Recall và Macro-F1 trên MNIST.}{fig:mnist-metric}
 \sourcefig[0.88\textwidth]{../Assignment 04/images/generated/mnist_normalized_confusion_matrices.png}{Ma trận nhầm lẫn chuẩn hóa của ba CNN MNIST.}{fig:mnist-cm}
@@ -459,24 +1194,254 @@ Ma trận nhầm lẫn cho biết cặp chữ số nào dễ bị đánh đồng
 \datasetlink{https://www.cs.toronto.edu/~kriz/cifar.html}
 CIFAR-10 có 50.000 ảnh train gốc và 10.000 ảnh test, kích thước $32\times32\times3$. Mười nhãn là máy bay, ô tô, chim, mèo, hươu, chó, ếch, ngựa, tàu và xe tải. Mỗi lớp có đúng 5.000 ảnh train và 1.000 ảnh test \cite{cifar10}. Một mẫu đầu vào là ảnh màu độ phân giải thấp; output là một trong mười nhãn. Khác MNIST, vật thể có thể nhỏ, bị che, xuất hiện trên nền phức tạp hoặc có hình dạng gần giống lớp khác.
 
+% BEGIN NOTEBOOK CELL cifar-14
+\par\medskip\noindent\textbf{Cell 14 --- EDA (notebook gốc).}
+\begin{NotebookCode}
+# Hiển thị một ảnh đại diện cho mỗi lớp.
+fig, axes = plt.subplots(2, 5, figsize=(13, 5))
+for label, ax in enumerate(axes.ravel()):
+    image = x_train_full[np.flatnonzero(y_train_full == label)[0]]
+    if image.shape[-1] == 1:
+        ax.imshow(image.squeeze(-1), cmap="gray")
+    else:
+        ax.imshow(image)
+    ax.set_title(f"{label}: {CLASS_NAMES[label]}")
+    ax.axis("off")
+fig.suptitle(f"Ảnh mẫu của 10 lớp - {DATASET_NAME}", fontsize=14)
+plt.tight_layout()
+plt.show()
+
+train_counts = np.bincount(y_train_full, minlength=10)
+test_counts = np.bincount(y_test_full, minlength=10)
+distribution_df = pd.DataFrame({
+    "class_id": np.arange(10),
+    "class_name": CLASS_NAMES,
+    "train_count": train_counts,
+    "test_count": test_counts,
+})
+display(distribution_df)
+
+ax = distribution_df.set_index("class_name")[["train_count", "test_count"]].plot(
+    kind="bar", figsize=(12, 5), color=["#4C78A8", "#F58518"]
+)
+ax.set_title(f"Phân phối lớp của {DATASET_NAME}")
+ax.set_xlabel("Lớp")
+ax.set_ylabel("Số ảnh")
+plt.xticks(rotation=30, ha="right")
+plt.tight_layout()
+plt.show()
+\end{NotebookCode}
+\noindent\textit{Output của cell:}
+\begin{NotebookOutput}
+index=0; class_id=0; class_name=airplane; train_count=5000; test_count=1000
+index=1; class_id=1; class_name=automobile; train_count=5000; test_count=1000
+index=2; class_id=2; class_name=bird; train_count=5000; test_count=1000
+index=3; class_id=3; class_name=cat; train_count=5000; test_count=1000
+index=4; class_id=4; class_name=deer; train_count=5000; test_count=1000
+index=5; class_id=5; class_name=dog; train_count=5000; test_count=1000
+index=6; class_id=6; class_name=frog; train_count=5000; test_count=1000
+index=7; class_id=7; class_name=horse; train_count=5000; test_count=1000
+index=8; class_id=8; class_name=ship; train_count=5000; test_count=1000
+index=9; class_id=9; class_name=truck; train_count=5000; test_count=1000
+\end{NotebookOutput}
+\noindent\textit{Output hình của cell: Hình~\ref{fig:cifar-samples}, Hình~\ref{fig:cifar-distribution}.}
+% END NOTEBOOK CELL cifar-14
+
 \sourcefig{../Assignment 04/images/generated/cifar10_sample_images.png}{Ví dụ ảnh của từng lớp CIFAR-10: cùng một nhãn vẫn có nhiều góc nhìn và nền khác nhau.}{fig:cifar-samples}
 \sourcefig[0.85\textwidth]{../Assignment 04/images/generated/cifar10_class_distribution.png}{Phân bố cân bằng của CIFAR-10 trên train và test.}{fig:cifar-distribution}
 
 Notebook tách 45.000 train và 5.000 validation cho PyTorch/Keras. NumPy chỉ dùng 15.000 train và 3.000 validation. Các giá trị trung bình và độ lệch chuẩn của ba channel được fit trên train rồi tái dùng. NumPy CNN có hai block với 12 và 24 filter, tầng ẩn 128 và 200.978 tham số. Hai framework dùng ResNet-20 với ba stage kênh $16\to32\to64$ và các residual block; số tham số khoảng 272--274 nghìn. Các kỹ thuật crop, lật ngang, label smoothing và lịch learning rate giúp hai mạng framework khai thác dữ liệu phong phú hơn.
 
+% BEGIN NOTEBOOK CELL cifar-26
+\par\medskip\noindent\textbf{Cell 26 --- huấn luyện CNN NumPy (notebook gốc).}
+\begin{NotebookCode}
+numpy_model = NumpyCNN(
+    input_shape=x_train_numpy.shape[1:],
+    conv_filters=NUMPY_FILTERS,
+    hidden_units=NUMPY_HIDDEN_UNITS,
+    num_classes=10,
+    random_state=RANDOM_STATE,
+)
+print("NumPy CNN parameters:", f"{numpy_model.parameter_count():,}")
+
+start = time.perf_counter()
+numpy_history = train_numpy_cnn(
+    numpy_model,
+    x_train_numpy,
+    y_train_numpy,
+    x_val_numpy,
+    y_val_numpy,
+    epochs=NUMPY_EPOCHS,
+    batch_size=NUMPY_BATCH_SIZE,
+    learning_rate=NUMPY_LEARNING_RATE,
+    weight_decay=NUMPY_WEIGHT_DECAY,
+    dataset_key=DATASET_KEY,
+    random_state=RANDOM_STATE,
+)
+numpy_train_time = time.perf_counter() - start
+
+start = time.perf_counter()
+numpy_test_probabilities = predict_numpy_proba(
+    numpy_model,
+    x_test,
+    batch_size=NUMPY_BATCH_SIZE,
+)
+numpy_predict_time = time.perf_counter() - start
+
+benchmark_results.append(evaluate_predictions(
+    "NumPy CNN from scratch",
+    y_test,
+    numpy_test_probabilities,
+    numpy_train_time,
+    numpy_predict_time,
+    numpy_model.parameter_count(),
+    len(y_train_numpy),
+    numpy_history["best_epoch"],
+    numpy_history["learning_rate"][-1],
+))
+prediction_store["NumPy CNN from scratch"] = numpy_test_probabilities
+history_store["NumPy CNN from scratch"] = numpy_history
+print(
+    f"Train time: {numpy_train_time:.2f}s | Test accuracy: "
+    f"{accuracy_score(y_test, np.argmax(numpy_test_probabilities, axis=1)):.4f}"
+)
+\end{NotebookCode}
+\noindent\textit{Output của cell:}
+\begin{NotebookOutput}
+NumPy CNN parameters: 200,978
+Epoch 001/50 | lr=0.001000 | loss=1.8495 | acc=0.3387 | val_loss=1.5432 | val_acc=0.4543
+Epoch 002/50 | lr=0.000999 | loss=1.5245 | acc=0.4527 | val_loss=1.3395 | val_acc=0.5243
+Epoch 003/50 | lr=0.000996 | loss=1.3982 | acc=0.5005 | val_loss=1.2409 | val_acc=0.5643
+Epoch 004/50 | lr=0.000991 | loss=1.3271 | acc=0.5263 | val_loss=1.1730 | val_acc=0.5820
+Epoch 005/50 | lr=0.000984 | loss=1.2850 | acc=0.5483 | val_loss=1.1727 | val_acc=0.5883
+Epoch 006/50 | lr=0.000976 | loss=1.2364 | acc=0.5613 | val_loss=1.1071 | val_acc=0.6137
+Epoch 007/50 | lr=0.000965 | loss=1.1947 | acc=0.5735 | val_loss=1.0963 | val_acc=0.6083
+Epoch 008/50 | lr=0.000953 | loss=1.1627 | acc=0.5883 | val_loss=1.0621 | val_acc=0.6180
+Epoch 009/50 | lr=0.000939 | loss=1.1391 | acc=0.5948 | val_loss=1.0696 | val_acc=0.6260
+Epoch 010/50 | lr=0.000923 | loss=1.1111 | acc=0.6023 | val_loss=1.0322 | val_acc=0.6330
+Epoch 011/50 | lr=0.000906 | loss=1.0985 | acc=0.6094 | val_loss=1.0179 | val_acc=0.6457
+Epoch 012/50 | lr=0.000887 | loss=1.0774 | acc=0.6165 | val_loss=1.0094 | val_acc=0.6410
+Epoch 013/50 | lr=0.000866 | loss=1.0474 | acc=0.6309 | val_loss=0.9998 | val_acc=0.6583
+Epoch 014/50 | lr=0.000844 | loss=1.0497 | acc=0.6285 | val_loss=1.0491 | val_acc=0.6333
+Epoch 015/50 | lr=0.000821 | loss=1.0318 | acc=0.6347 | val_loss=0.9695 | val_acc=0.6647
+Epoch 016/50 | lr=0.000797 | loss=1.0104 | acc=0.6406 | val_loss=0.9642 | val_acc=0.6683
+Epoch 017/50 | lr=0.000771 | loss=1.0014 | acc=0.6453 | val_loss=0.9713 | val_acc=0.6620
+Epoch 018/50 | lr=0.000745 | loss=0.9884 | acc=0.6493 | val_loss=0.9701 | val_acc=0.6623
+Epoch 019/50 | lr=0.000717 | loss=0.9759 | acc=0.6547 | val_loss=0.9446 | val_acc=0.6740
+Epoch 020/50 | lr=0.000689 | loss=0.9687 | acc=0.6591 | val_loss=0.9344 | val_acc=0.6797
+Epoch 021/50 | lr=0.000660 | loss=0.9480 | acc=0.6647 | val_loss=0.9448 | val_acc=0.6733
+Epoch 022/50 | lr=0.000631 | loss=0.9469 | acc=0.6658 | val_loss=0.9240 | val_acc=0.6853
+Epoch 023/50 | lr=0.000601 | loss=0.9302 | acc=0.6725 | val_loss=0.9258 | val_acc=0.6850
+Epoch 024/50 | lr=0.000571 | loss=0.9189 | acc=0.6785 | val_loss=0.9410 | val_acc=0.6743
+Epoch 025/50 | lr=0.000540 | loss=0.9115 | acc=0.6800 | val_loss=0.9052 | val_acc=0.6877
+Epoch 026/50 | lr=0.000510 | loss=0.9064 | acc=0.6810 | val_loss=0.9326 | val_acc=0.6783
+Epoch 027/50 | lr=0.000479 | loss=0.9005 | acc=0.6817 | val_loss=0.9063 | val_acc=0.6877
+Epoch 028/50 | lr=0.000449 | loss=0.8878 | acc=0.6859 | val_loss=0.9055 | val_acc=0.6840
+Epoch 029/50 | lr=0.000419 | loss=0.8738 | acc=0.6912 | val_loss=0.9018 | val_acc=0.6930
+Epoch 030/50 | lr=0.000390 | loss=0.8722 | acc=0.6935 | val_loss=0.8884 | val_acc=0.6893
+Epoch 031/50 | lr=0.000361 | loss=0.8637 | acc=0.6956 | val_loss=0.8935 | val_acc=0.6900
+Epoch 032/50 | lr=0.000333 | loss=0.8551 | acc=0.6981 | val_loss=0.8874 | val_acc=0.7000
+Epoch 033/50 | lr=0.000305 | loss=0.8421 | acc=0.7045 | val_loss=0.8818 | val_acc=0.6940
+Epoch 034/50 | lr=0.000279 | loss=0.8361 | acc=0.7079 | val_loss=0.8932 | val_acc=0.6910
+Epoch 035/50 | lr=0.000253 | loss=0.8362 | acc=0.7073 | val_loss=0.8845 | val_acc=0.6887
+Epoch 036/50 | lr=0.000229 | loss=0.8265 | acc=0.7085 | val_loss=0.8809 | val_acc=0.6953
+Epoch 037/50 | lr=0.000206 | loss=0.8262 | acc=0.7126 | val_loss=0.8899 | val_acc=0.6930
+Epoch 038/50 | lr=0.000184 | loss=0.8174 | acc=0.7107 | val_loss=0.8830 | val_acc=0.6967
+Epoch 039/50 | lr=0.000163 | loss=0.8181 | acc=0.7121 | val_loss=0.8727 | val_acc=0.7040
+Epoch 040/50 | lr=0.000144 | loss=0.8183 | acc=0.7092 | val_loss=0.8800 | val_acc=0.6973
+Epoch 041/50 | lr=0.000127 | loss=0.8196 | acc=0.7127 | val_loss=0.8779 | val_acc=0.6987
+Epoch 042/50 | lr=0.000111 | loss=0.8088 | acc=0.7201 | val_loss=0.8729 | val_acc=0.7010
+Epoch 043/50 | lr=0.000097 | loss=0.8001 | acc=0.7155 | val_loss=0.8753 | val_acc=0.6993
+Epoch 044/50 | lr=0.000085 | loss=0.7943 | acc=0.7235 | val_loss=0.8731 | val_acc=0.7010
+Epoch 045/50 | lr=0.000074 | loss=0.7945 | acc=0.7200 | val_loss=0.8669 | val_acc=0.7033
+Epoch 046/50 | lr=0.000066 | loss=0.7943 | acc=0.7198 | val_loss=0.8687 | val_acc=0.7040
+Epoch 047/50 | lr=0.000059 | loss=0.7872 | acc=0.7201 | val_loss=0.8634 | val_acc=0.7023
+Epoch 048/50 | lr=0.000054 | loss=0.7968 | acc=0.7185 | val_loss=0.8669 | val_acc=0.7043
+Epoch 049/50 | lr=0.000051 | loss=0.7943 | acc=0.7199 | val_loss=0.8659 | val_acc=0.6990
+Epoch 050/50 | lr=0.000050 | loss=0.7972 | acc=0.7172 | val_loss=0.8663 | val_acc=0.7017
+Restored NumPy weights from epoch 47 (val_loss=0.8634).
+Train time: 478.93s | Test accuracy: 0.7012
+\end{NotebookOutput}
+% END NOTEBOOK CELL cifar-26
+
 \sourcefig{../Assignment 04/images/generated/cifar10_learning_curves.png}{Đường học của ba CNN trên CIFAR-10; validation cho thấy độ khó lớn hơn MNIST.}{fig:cifar-curves}
 
 CNN NumPy dừng gần vùng accuracy 0.70, trong khi hai mạng ResNet-20 vượt 0.90. Chênh lệch không thể quy cho một yếu tố. NumPy dùng ít ảnh hơn ba lần, kiến trúc nông hơn, không có residual connection và có chính sách tối ưu đơn giản hơn. Ngược lại, đường train/validation gần nhau của CNN NumPy gợi ý hạn chế thiên về năng lực biểu diễn và dữ liệu, hơn là overfitting nghiêm trọng. Với ảnh tự nhiên, receptive field lớn và kết hợp đặc trưng qua nhiều tầng tạo lợi thế rõ.
 
+% BEGIN NOTEBOOK CELL cifar-42
+\par\medskip\noindent\textbf{Cell 42 --- tổng hợp kết quả (notebook gốc).}
+\begin{NotebookCode}
+ordered_columns = [
+    "Model",
+    "Accuracy",
+    "Macro Precision",
+    "Macro Recall",
+    "Macro F1",
+    "Train samples",
+    "Best epoch",
+    "Final LR",
+    "Parameters",
+    "Train time (s)",
+    "Predict time (s)",
+]
+results_df = pd.DataFrame(benchmark_results)[ordered_columns]
+results_df = results_df.sort_values(
+    ["Macro F1", "Accuracy"],
+    ascending=False,
+).reset_index(drop=True)
+display(results_df.style.format({
+    "Accuracy": "{:.4f}",
+    "Macro Precision": "{:.4f}",
+    "Macro Recall": "{:.4f}",
+    "Macro F1": "{:.4f}",
+    "Train samples": "{:,}",
+    "Best epoch": "{:d}",
+    "Final LR": "{:.6f}",
+    "Parameters": "{:,}",
+    "Train time (s)": "{:.2f}",
+    "Predict time (s)": "{:.3f}",
+}))
+
+metric_columns = [
+    "Accuracy",
+    "Macro Precision",
+    "Macro Recall",
+    "Macro F1",
+]
+ax = results_df.set_index("Model")[metric_columns].plot(
+    kind="bar",
+    figsize=(13, 6),
+)
+ax.set_title(
+    f"So sánh ba cách cài đặt CNN trên {DATASET_NAME}"
+)
+ax.set_ylabel("Score")
+ax.set_ylim(0, 1)
+plt.xticks(rotation=15, ha="right")
+plt.tight_layout()
+plt.show()
+\end{NotebookCode}
+\noindent\textit{Output của cell:}
+\begin{NotebookOutput}
+index=0; Model=PyTorch CNN; Accuracy=0.9151; Macro Precision=0.9150; Macro Recall=0.9151; Macro F1=0.9149
+  Train samples=45,000; Best epoch=50; Final LR=0.000222; Parameters=272,474; Train time (s)=578.99; Predict time (s)=1.056
+index=1; Model=TensorFlow/Keras CNN; Accuracy=0.9078; Macro Precision=0.9077; Macro Recall=0.9078; Macro F1=0.9075
+  Train samples=45,000; Best epoch=49; Final LR=0.000222; Parameters=274,042; Train time (s)=2996.91; Predict time (s)=5.528
+index=2; Model=NumPy CNN from scratch; Accuracy=0.7012; Macro Precision=0.6987; Macro Recall=0.7012; Macro F1=0.6994
+  Train samples=15,000; Best epoch=47; Final LR=0.000050; Parameters=200,978; Train time (s)=478.93; Predict time (s)=2.555
+\end{NotebookOutput}
+\noindent\textit{Output hình của cell: Hình~\ref{fig:cifar-metric}.}
+% END NOTEBOOK CELL cifar-42
+
 \begin{table}[htbp]\centering\caption{Ba CNN trên full test set CIFAR-10}\label{tab:cifar-results}
 \resizebox{\textwidth}{!}{\begin{tabular}{lrrrrrr}\toprule
 \textbf{Mô hình} & \textbf{Accuracy} & \textbf{Macro-P} & \textbf{Macro-R} & \textbf{Macro-F1} & \textbf{Tham số} & \textbf{Train (s)}\\\midrule
-PyTorch CNN & \textbf{0.9095} & \textbf{0.9092} & \textbf{0.9095} & \textbf{0.9092} & 272.474 & 822.82\\
-Keras CNN & 0.9078 & 0.9077 & 0.9078 & 0.9075 & 274.042 & 2636.45\\
-NumPy CNN & 0.7012 & 0.6987 & 0.7012 & 0.6994 & \textbf{200.978} & \textbf{501.36}\\\bottomrule\end{tabular}}
+PyTorch CNN & \textbf{0.9151} & \textbf{0.9150} & \textbf{0.9151} & \textbf{0.9149} & 272.474 & 578.99\\
+Keras CNN & 0.9078 & 0.9077 & 0.9078 & 0.9075 & 274.042 & 2996.91\\
+NumPy CNN & 0.7012 & 0.6987 & 0.7012 & 0.6994 & \textbf{200.978} & \textbf{478.93}\\\bottomrule\end{tabular}}
 \end{table}
 
-Hai ResNet-20 gần nhau về chất lượng: PyTorch hơn Keras 0.0017 Macro-F1 trong lần chạy được lưu. Chênh lệch thời gian lớn hơn, song phụ thuộc thiết bị MPS, backend và điều kiện máy tại thời điểm huấn luyện. Không nên suy ra PyTorch luôn nhanh hơn Keras. NumPy thấp hơn rõ, nhưng đạt hơn 70\% accuracy trên bài toán khó hơn MNIST; đó là một kết quả phù hợp cho kiến trúc thủ công nhỏ.
+Hai ResNet-20 gần nhau về chất lượng: PyTorch hơn Keras 0.0074 Macro-F1 trong lần chạy được lưu. Chênh lệch thời gian lớn hơn, song phụ thuộc thiết bị MPS, backend và điều kiện máy tại thời điểm huấn luyện. Không nên suy ra PyTorch luôn nhanh hơn Keras. NumPy thấp hơn rõ, nhưng đạt hơn 70\% accuracy trên bài toán khó hơn MNIST; đó là một kết quả phù hợp cho kiến trúc thủ công nhỏ.
 
 \sourcefig{../Assignment 04/images/generated/cifar10_metric_comparison.png}{So sánh các metric phân loại CIFAR-10 trên cùng full test set.}{fig:cifar-metric}
 \sourcefig[0.88\textwidth]{../Assignment 04/images/generated/cifar10_normalized_confusion_matrices.png}{Ma trận nhầm lẫn theo lớp của ba CNN CIFAR-10.}{fig:cifar-cm}
@@ -568,12 +1533,128 @@ Phân bố train/test có thể đổi theo thời gian, đặc biệt ở thị
 \datasetlink{https://finance.yahoo.com/quote/AMZN/history/}
 Tệp được dùng là \texttt{AMZN.csv} trong thư mục dữ liệu của Assignment 06; project không ghi lại URL tải chính xác của snapshot CSV này. Link ở trên là trang lịch sử giá AMZN để tham khảo, không được hiểu là bằng chứng về nguồn tải tệp. CSV có 6.684 phiên từ ngày 15/05/1997 đến 05/12/2023, với các cột Date, Open, High, Low, Close, Adj Close và Volume. Dòng đầu có Close bằng 0.097917 và Volume bằng 1.443.120.000; output của một cửa sổ 60 phiên là Close ở phiên kế tiếp. Trong bản CSV, Close thấp nhất khoảng 0.0698, trung vị 7.1048 và cao nhất 186.5705; khoảng biến thiên rất rộng phản ánh nhiều giai đoạn thị trường khác nhau.
 
+% BEGIN NOTEBOOK CELL amazon06-16
+\par\medskip\noindent\textbf{Cell 16 --- EDA (notebook gốc).}
+\begin{NotebookCode}
+df["Close_change_pct"] = df["Close"].pct_change() * 100
+fig, axes = plt.subplots(2, 2, figsize=(16, 10))
+axes[0, 0].plot(df["Date"], df["Close"], color="tab:blue", linewidth=1)
+axes[0, 0].set(title="Amazon Close theo thoi gian", xlabel="Date", ylabel="USD")
+sns.histplot(df["Close"], bins=60, kde=True, ax=axes[0, 1], color="tab:green")
+axes[0, 1].set(title="Phan bo gia Close", xlabel="Close")
+sns.histplot(df["Close_change_pct"].dropna(), bins=80, kde=True, ax=axes[1, 0], color="tab:orange")
+axes[1, 0].set(title="Phan bo thay doi gia hang ngay", xlabel="Change (%)", xlim=(-15, 15))
+axes[1, 1].plot(df["Date"], df["Volume"], color="tab:purple", linewidth=0.7)
+axes[1, 1].set_yscale("log")
+axes[1, 1].set(title="Trading volume (log scale)", xlabel="Date", ylabel="Volume")
+plt.tight_layout()
+plt.show()
+
+yearly = df.set_index("Date").resample("YE").agg(Close_mean=("Close", "mean"), Close_std=("Close", "std"))
+display(yearly.tail(10))
+\end{NotebookCode}
+\noindent\textit{Output của cell:}
+\begin{NotebookOutput}
+index=2014-12-31; Close_mean=16.627552; Close_std=1.383261
+index=2015-12-31; Close_mean=23.906915; Close_std=5.537250
+index=2016-12-31; Close_mean=34.976157; Close_std=4.618116
+index=2017-12-31; Close_mean=48.408351; Close_std=5.329010
+index=2018-12-31; Close_mean=82.086309; Close_std=9.863754
+index=2019-12-31; Close_mean=89.459460; Close_std=5.065682
+index=2020-12-31; Close_mean=134.042755; Close_std=27.288052
+index=2021-12-31; Close_mean=167.193349; Close_std=8.002098
+index=2022-12-31; Close_mean=126.098819; Close_std=23.904315
+index=2023-12-31; Close_mean=119.250945; Close_std=17.781396
+\end{NotebookOutput}
+\noindent\textit{Output hình của cell: Hình~\ref{fig:amazon-eda}.}
+% END NOTEBOOK CELL amazon06-16
+
 \sourcefig{../Assignment 06/images/generated/amazon_eda_overview.png}{Chuỗi Close, phân phối mức giá, thay đổi ngày và volume trong dữ liệu Amazon.}{fig:amazon-eda}
 \sourcefig[0.9\textwidth]{../Assignment 06/images/generated/amazon_eda_diagnostics.png}{Rolling statistics, tương quan các cột OHLCV và thay đổi theo năm.}{fig:amazon-diagnostics}
 
 Không có giá trị thiếu hay ngày trùng trong tệp Amazon. Các ngày cuối tuần và ngày nghỉ không có dòng; vì thế ``bước tiếp theo'' là phiên giao dịch kế tiếp, không phải ngày lịch tiếp theo. Các cột Open, High, Low, Close thường tương quan mạnh vì cùng một phiên. Notebook chỉ dùng Close trong mô hình RNN một biến; những biểu đồ OHLCV khác dùng cho khảo sát, không phải đầu vào của mô hình. Giá đóng cửa ở dạng mức có xu hướng dài hạn, còn phần trăm biến động ngày tập trung gần 0 và có đuôi dày. Điều này giải thích vì sao bài toán dự báo mức giá có thể khó ngoại suy khi test nằm ở vùng giá mới.
 
 Sau lookback 60, notebook tạo 6.624 cửa sổ. StandardScaler fit trên phần train; mean khoảng 11.5805 và scale khoảng 17.4447. PyTorch train 107 epoch trong 101.50 giây; Keras train 75 epoch trong 18.88 giây. Trọng số tốt nhất của từng framework được nạp lại trước khi tính metric trên test. Các chi tiết này cần được giữ khi tái lập, bởi nếu fit scaler trên toàn chuỗi hoặc lấy trạng thái epoch cuối, kết quả có thể khác đáng kể.
+
+% BEGIN NOTEBOOK CELL amazon06-24
+\par\medskip\noindent\textbf{Cell 24 --- huấn luyện PyTorch RNN (notebook gốc).}
+\begin{NotebookCode}
+train_loader = make_loader(X_train, y_train, shuffle=True)
+val_loader = make_loader(X_val, y_val)
+
+torch_model = TorchPriceRNN().to(DEVICE)
+optimizer = torch.optim.Adam(torch_model.parameters(), lr=LEARNING_RATE)
+scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+    optimizer, mode="min", factor=0.5, patience=5
+)
+best_val_loss = float("inf")
+best_state = None
+epochs_without_improvement = 0
+torch_history = {"loss": [], "val_loss": [], "learning_rate": []}
+
+torch_start = time.perf_counter()
+for epoch in range(1, MAX_EPOCHS + 1):
+    train_loss = run_torch_epoch(torch_model, train_loader, optimizer)
+    val_loss = run_torch_epoch(torch_model, val_loader)
+    scheduler.step(val_loss)
+    current_lr = optimizer.param_groups[0]["lr"]
+    torch_history["loss"].append(train_loss)
+    torch_history["val_loss"].append(val_loss)
+    torch_history["learning_rate"].append(current_lr)
+
+    if val_loss < best_val_loss - 1e-8:
+        best_val_loss = val_loss
+        best_state = copy.deepcopy(torch_model.state_dict())
+        epochs_without_improvement = 0
+        torch.save(
+            {"state_dict": best_state, "model_config": MODEL_CONFIG},
+            PYTORCH_WEIGHTS_PATH,
+        )
+    else:
+        epochs_without_improvement += 1
+
+    if epoch == 1 or epoch % 10 == 0:
+        print(
+            f"Epoch {epoch:03d} | train={train_loss:.6f} | "
+            f"val={val_loss:.6f} | lr={current_lr:.2e}"
+        )
+    if epoch >= MIN_EPOCHS and epochs_without_improvement >= EARLY_STOPPING_PATIENCE:
+        print(f"Early stopping tai epoch {epoch}.")
+        break
+
+torch_train_seconds = time.perf_counter() - torch_start
+torch_model.load_state_dict(best_state)
+torch_scaled_prediction = predict_torch(torch_model, X_test)
+print(f"PyTorch hoan tat trong {torch_train_seconds:.2f}s; best val loss={best_val_loss:.6f}")
+\end{NotebookCode}
+\noindent\textit{Output của cell:}
+\begin{NotebookOutput}
+Epoch 001 | train=0.178609 | val=5.266870 | lr=1.00e-03
+
+Epoch 010 | train=0.005766 | val=1.987922 | lr=1.00e-03
+
+Epoch 020 | train=0.006129 | val=1.137135 | lr=1.00e-03
+
+Epoch 030 | train=0.005416 | val=0.899365 | lr=1.00e-03
+
+Epoch 040 | train=0.004985 | val=0.696580 | lr=1.00e-03
+
+Epoch 050 | train=0.005175 | val=0.687103 | lr=1.00e-03
+
+Epoch 060 | train=0.005699 | val=0.370009 | lr=1.00e-03
+
+Epoch 070 | train=0.004700 | val=0.311509 | lr=5.00e-04
+
+Epoch 080 | train=0.004698 | val=0.398837 | lr=2.50e-04
+
+Epoch 090 | train=0.004271 | val=0.384622 | lr=1.25e-04
+
+Epoch 100 | train=0.004517 | val=0.367282 | lr=3.13e-05
+
+Early stopping tai epoch 107.
+PyTorch hoan tat trong 101.50s; best val loss=0.309872
+\end{NotebookOutput}
+% END NOTEBOOK CELL amazon06-24
 
 \begin{table}[htbp]\centering\caption{Ba mô hình trên test Amazon Stock Price}\label{tab:amazon-results}
 \begin{tabular}{lrrrrr}\toprule
@@ -585,6 +1666,64 @@ Keras RNN & 10.5704 & 14.1749 & 6.8377 & 0.7456 & 18.88\\\bottomrule\end{tabular
 
 Persistence thắng cả bốn metric. Điều này là một kết quả thực nghiệm quan trọng, không phải lý do để loại baseline khỏi báo cáo. Trên chuỗi mức giá, phiên kề nhau thường gần nhau; dự báo ``bằng phiên trước'' khai thác đặc tính đó trực tiếp. RNN nhỏ có thể học một vùng giá điển hình của train nhưng khó dự báo khi test dịch lên vùng cao hơn. Hai RNN khá gần nhau, PyTorch nhỉnh hơn Keras một chút về MAE, nhưng cả hai còn cách xa baseline. Nếu nghiên cứu tiếp, có thể dự báo return hoặc difference thay vì mức giá, dùng rolling normalization và đánh giá walk-forward; những thay đổi này chưa nằm trong kết quả đã công bố.
 
+% BEGIN NOTEBOOK CELL amazon06-28
+\par\medskip\noindent\textbf{Cell 28 --- đánh giá dự báo (notebook gốc).}
+\begin{NotebookCode}
+def inverse_amazon(values):
+    values = np.asarray(values).reshape(-1, 1)
+    return scaler.inverse_transform(values).reshape(-1)
+
+torch_prediction = inverse_amazon(torch_scaled_prediction)
+keras_prediction = inverse_amazon(keras_scaled_prediction)
+predictions = {
+    "Persistence baseline": baseline_test,
+    "PyTorch RNN": torch_prediction,
+    "Keras RNN": keras_prediction,
+}
+results = []
+for name, prediction in predictions.items():
+    row = {"Model": name, **regression_metrics(y_test_raw, prediction)}
+    if name == "PyTorch RNN":
+        row["Train time (s)"] = torch_train_seconds
+    elif name == "Keras RNN":
+        row["Train time (s)"] = keras_train_seconds
+    else:
+        row["Train time (s)"] = 0.0
+    results.append(row)
+results_df = pd.DataFrame(results).set_index("Model").sort_values("RMSE")
+display(results_df.style.format({column: "{:.4f}" for column in results_df.columns}))
+
+fig, axes = plt.subplots(2, 2, figsize=(16, 10))
+axes[0, 0].plot(torch_history["loss"], label="train")
+axes[0, 0].plot(torch_history["val_loss"], label="validation")
+axes[0, 0].set(title="PyTorch learning curve", xlabel="Epoch", ylabel="MSE")
+axes[0, 0].legend()
+axes[0, 1].plot(keras_history["loss"], label="train")
+axes[0, 1].plot(keras_history["val_loss"], label="validation")
+axes[0, 1].set(title="Keras learning curve", xlabel="Epoch", ylabel="MSE")
+axes[0, 1].legend()
+plot_tail = min(220, len(y_test_raw))
+axes[1, 0].plot(test_dates.iloc[-plot_tail:], y_test_raw[-plot_tail:], label="Actual", color="black")
+axes[1, 0].plot(test_dates.iloc[-plot_tail:], torch_prediction[-plot_tail:], label="PyTorch", alpha=0.8)
+axes[1, 0].plot(test_dates.iloc[-plot_tail:], keras_prediction[-plot_tail:], label="Keras", alpha=0.8)
+axes[1, 0].set(title="Actual vs predicted (test tail)", xlabel="Date", ylabel="USD")
+axes[1, 0].legend()
+sns.histplot(y_test_raw - torch_prediction, bins=35, kde=True, ax=axes[1, 1], label="PyTorch", alpha=0.5)
+sns.histplot(y_test_raw - keras_prediction, bins=35, kde=True, ax=axes[1, 1], label="Keras", alpha=0.5)
+axes[1, 1].set(title="Residual distribution", xlabel="Actual - predicted")
+axes[1, 1].legend()
+plt.tight_layout()
+plt.show()
+\end{NotebookCode}
+\noindent\textit{Output của cell:}
+\begin{NotebookOutput}
+index=Persistence baseline; MAE=2.2720; RMSE=3.1507; MAPE (%)=1.7519; R2=0.9874; Train time (s)=0.0000
+index=PyTorch RNN; MAE=10.4466; RMSE=13.6738; MAPE (%)=6.7825; R2=0.7633; Train time (s)=101.4997
+index=Keras RNN; MAE=10.5704; RMSE=14.1749; MAPE (%)=6.8377; R2=0.7456; Train time (s)=18.8772
+\end{NotebookOutput}
+\noindent\textit{Output hình của cell: Hình~\ref{fig:amazon-eval}.}
+% END NOTEBOOK CELL amazon06-28
+
 \sourcefig{../Assignment 06/images/generated/amazon_model_evaluation.png}{Learning curves, giá thực so với dự báo và residual trên test Amazon.}{fig:amazon-eval}
 
 \deployfig{../Essay 01/images/deploy/amazon_deploy_result.png}{Giao diện deploy Amazon với chuỗi giá Close, framework và giá phiên kế tiếp dự đoán.}{fig:amazon-deploy}
@@ -594,12 +1733,126 @@ Persistence thắng cả bốn metric. Điều này là một kết quả thực
 \datasetlink{https://www.kaggle.com/datasets/neuromusic/avocado-prices}
 Tệp \texttt{avocado.csv} có 18.249 dòng từ 04/01/2015 đến 25/03/2018. Mỗi dòng là thống kê một tuần cho một tổ hợp vùng và loại bơ, với target \texttt{AveragePrice}; các cột khác gồm sản lượng, mã PLU, số lượng túi, \texttt{type}, năm và \texttt{region}. Dòng mẫu cho Albany, loại conventional vào 27/12/2015 có AveragePrice 1.33 và Total Volume 64.236,62. Trong CSV, giá thấp nhất 0.44, trung vị 1.37 và cao nhất 3.25. Hai loại conventional và organic có lần lượt 9.126 và 9.123 dòng, gần cân bằng về số quan sát.
 
+% BEGIN NOTEBOOK CELL avocado-16
+\par\medskip\noindent\textbf{Cell 16 --- EDA (notebook gốc).}
+\begin{NotebookCode}
+weekly_by_type = (
+    df.groupby(["Date", "type"], as_index=False)["AveragePrice"].mean()
+)
+top_regions = (
+    df.groupby("region")["Total Volume"].sum().nlargest(12).index.tolist()
+)
+fig, axes = plt.subplots(2, 2, figsize=(17, 11))
+sns.histplot(
+    data=df, x="AveragePrice", hue="type", bins=45, kde=True,
+    stat="density", common_norm=False, element="step", ax=axes[0, 0]
+)
+axes[0, 0].set(title="Phan bo AveragePrice theo type")
+sns.lineplot(data=weekly_by_type, x="Date", y="AveragePrice", hue="type", ax=axes[0, 1])
+axes[0, 1].set(title="Gia trung binh theo tuan va type")
+sns.histplot(np.log1p(df["Total Volume"]), bins=55, kde=True, ax=axes[1, 0], color="tab:purple")
+axes[1, 0].set(title="Phan bo log(1 + Total Volume)", xlabel="log volume")
+sns.boxplot(
+    data=df[df["region"].isin(top_regions)], x="AveragePrice", y="region",
+    hue="type", orient="h", ax=axes[1, 1]
+)
+axes[1, 1].set(title="Gia tai 12 region co volume lon nhat")
+plt.tight_layout()
+plt.show()
+
+seasonal = df.assign(month=df["Date"].dt.month).groupby(["month", "type"])["AveragePrice"].mean().unstack()
+display(seasonal.style.format("{:.3f}"))
+\end{NotebookCode}
+\noindent\textit{Output của cell:}
+\begin{NotebookOutput}
+type=1; conventional=1.069; organic=1.553
+type=2; conventional=1.017; organic=1.531
+type=3; conventional=1.126; organic=1.538
+type=4; conventional=1.142; organic=1.606
+type=5; conventional=1.090; organic=1.604
+type=6; conventional=1.149; organic=1.670
+type=7; conventional=1.212; organic=1.712
+type=8; conventional=1.235; organic=1.790
+type=9; conventional=1.295; organic=1.851
+type=10; conventional=1.349; organic=1.810
+type=11; conventional=1.206; organic=1.705
+type=12; conventional=1.077; organic=1.585
+\end{NotebookOutput}
+\noindent\textit{Output hình của cell: Hình~\ref{fig:avocado-eda}.}
+% END NOTEBOOK CELL avocado-16
+
 \sourcefig{../Assignment 06/images/generated/avocado_eda_overview.png}{Tổng quan mức giá, sản lượng và khác biệt giữa các nhóm Avocado.}{fig:avocado-eda}
 \sourcefig[0.9\textwidth]{../Assignment 06/images/generated/avocado_eda_diagnostics.png}{Mẫu hình mùa vụ, tương quan và biến động giá Avocado.}{fig:avocado-diagnostics}
 
 Khác Amazon, nhiều dòng có cùng ngày vì 54 region và hai type tạo thành 108 chuỗi độc lập. Do đó không được xếp toàn bộ CSV theo Date rồi tạo cửa sổ xuyên ranh giới region hoặc type. Notebook sắp xếp và tạo cửa sổ riêng trong mỗi nhóm, với lookback 12 tuần, sau đó gộp các cửa sổ để huấn luyện một mô hình chung. Scaler theo nhóm giữ mức giá riêng của từng thị trường. Input của một mẫu là 12 giá trung bình của cùng một region--type; output là AveragePrice tuần kế tiếp của đúng nhóm ấy.
 
 Hai RNN có cùng kiến trúc với bài Amazon nhưng học trên nhiều chuỗi. PyTorch train 32 epoch trong 22.72 giây và Keras mất 10.88 giây. Kết quả tính trên 1.728 cửa sổ test sau khi đổi ngược về thang giá của từng nhóm. Đường học và đồ thị actual--predicted của một nhóm minh họa diễn biến, trong khi bảng metric tổng hợp là phép đánh giá trên toàn bộ các nhóm. Không nên lấy một nhóm tiêu biểu để suy ra chất lượng như nhau ở mọi vùng.
+
+% BEGIN NOTEBOOK CELL avocado-24
+\par\medskip\noindent\textbf{Cell 24 --- huấn luyện PyTorch RNN (notebook gốc).}
+\begin{NotebookCode}
+train_loader = make_loader(X_train, y_train, shuffle=True)
+val_loader = make_loader(X_val, y_val)
+
+torch_model = TorchPriceRNN().to(DEVICE)
+optimizer = torch.optim.Adam(torch_model.parameters(), lr=LEARNING_RATE)
+scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+    optimizer, mode="min", factor=0.5, patience=5
+)
+best_val_loss = float("inf")
+best_state = None
+epochs_without_improvement = 0
+torch_history = {"loss": [], "val_loss": [], "learning_rate": []}
+
+torch_start = time.perf_counter()
+for epoch in range(1, MAX_EPOCHS + 1):
+    train_loss = run_torch_epoch(torch_model, train_loader, optimizer)
+    val_loss = run_torch_epoch(torch_model, val_loader)
+    scheduler.step(val_loss)
+    current_lr = optimizer.param_groups[0]["lr"]
+    torch_history["loss"].append(train_loss)
+    torch_history["val_loss"].append(val_loss)
+    torch_history["learning_rate"].append(current_lr)
+
+    if val_loss < best_val_loss - 1e-8:
+        best_val_loss = val_loss
+        best_state = copy.deepcopy(torch_model.state_dict())
+        epochs_without_improvement = 0
+        torch.save(
+            {"state_dict": best_state, "model_config": MODEL_CONFIG},
+            PYTORCH_WEIGHTS_PATH,
+        )
+    else:
+        epochs_without_improvement += 1
+
+    if epoch == 1 or epoch % 10 == 0:
+        print(
+            f"Epoch {epoch:03d} | train={train_loss:.6f} | "
+            f"val={val_loss:.6f} | lr={current_lr:.2e}"
+        )
+    if epoch >= MIN_EPOCHS and epochs_without_improvement >= EARLY_STOPPING_PATIENCE:
+        print(f"Early stopping tai epoch {epoch}.")
+        break
+
+torch_train_seconds = time.perf_counter() - torch_start
+torch_model.load_state_dict(best_state)
+torch_scaled_prediction = predict_torch(torch_model, X_test)
+print(f"PyTorch hoan tat trong {torch_train_seconds:.2f}s; best val loss={best_val_loss:.6f}")
+\end{NotebookCode}
+\noindent\textit{Output của cell:}
+\begin{NotebookOutput}
+Epoch 001 | train=0.506085 | val=0.853458 | lr=1.00e-03
+
+Epoch 010 | train=0.442515 | val=0.857946 | lr=1.00e-03
+
+Epoch 020 | train=0.438074 | val=0.958861 | lr=2.50e-04
+
+Epoch 030 | train=0.435213 | val=0.840648 | lr=1.25e-04
+
+Early stopping tai epoch 32.
+PyTorch hoan tat trong 22.72s; best val loss=0.773740
+\end{NotebookOutput}
+% END NOTEBOOK CELL avocado-24
 
 \begin{table}[htbp]\centering\caption{Ba mô hình trên test Avocado Price}\label{tab:avocado-results}
 \begin{tabular}{lrrrrr}\toprule
@@ -610,6 +1863,70 @@ Persistence baseline & 0.1199 & 0.1742 & 9.5478 & 0.6762 & 0.00\\\bottomrule\end
 \end{table}
 
 Trên Avocado, cả hai RNN vượt persistence ở cả bốn metric, trái với Amazon. Keras dẫn đầu với MAE 0.1099 và $R^2$ 0.7490. Mức chênh lệch giữa hai framework nhỏ hơn khoảng cách giữa chúng với baseline theo RMSE. Một lời giải thích hợp lý là chuỗi giá theo tuần và các nhóm thị trường có mẫu hình mà RNN học được tốt hơn quy tắc giữ nguyên giá tuần trước; đây là suy luận từ kết quả, không phải chứng minh nhân quả. Cần đánh giá riêng theo region và type để biết lợi ích có đồng đều không.
+
+% BEGIN NOTEBOOK CELL avocado-28
+\par\medskip\noindent\textbf{Cell 28 --- đánh giá dự báo (notebook gốc).}
+\begin{NotebookCode}
+def inverse_by_group(scaled_values, group_keys):
+    output = np.empty(len(scaled_values), dtype=np.float64)
+    for index, (value, key) in enumerate(zip(scaled_values, group_keys)):
+        scaler_info = group_scalers[key]
+        output[index] = value * scaler_info["scale"] + scaler_info["mean"]
+    return output
+
+torch_prediction = inverse_by_group(torch_scaled_prediction, test_group_keys)
+keras_prediction = inverse_by_group(keras_scaled_prediction, test_group_keys)
+predictions = {
+    "Persistence baseline": baseline_test,
+    "PyTorch RNN": torch_prediction,
+    "Keras RNN": keras_prediction,
+}
+results = []
+for name, prediction in predictions.items():
+    row = {"Model": name, **regression_metrics(y_test_raw, prediction)}
+    if name == "PyTorch RNN":
+        row["Train time (s)"] = torch_train_seconds
+    elif name == "Keras RNN":
+        row["Train time (s)"] = keras_train_seconds
+    else:
+        row["Train time (s)"] = 0.0
+    results.append(row)
+results_df = pd.DataFrame(results).set_index("Model").sort_values("RMSE")
+display(results_df.style.format({column: "{:.4f}" for column in results_df.columns}))
+
+fig, axes = plt.subplots(2, 2, figsize=(16, 10))
+axes[0, 0].plot(torch_history["loss"], label="train")
+axes[0, 0].plot(torch_history["val_loss"], label="validation")
+axes[0, 0].set(title="PyTorch learning curve", xlabel="Epoch", ylabel="MSE")
+axes[0, 0].legend()
+axes[0, 1].plot(keras_history["loss"], label="train")
+axes[0, 1].plot(keras_history["val_loss"], label="validation")
+axes[0, 1].set(title="Keras learning curve", xlabel="Epoch", ylabel="MSE")
+axes[0, 1].legend()
+
+focus_key = f"TotalUS{GROUP_SEPARATOR}conventional"
+focus = test_group_keys == focus_key
+focus_order = np.argsort(test_dates[focus])
+axes[1, 0].plot(test_dates[focus][focus_order], y_test_raw[focus][focus_order], marker="o", label="Actual", color="black")
+axes[1, 0].plot(test_dates[focus][focus_order], torch_prediction[focus][focus_order], marker="o", label="PyTorch")
+axes[1, 0].plot(test_dates[focus][focus_order], keras_prediction[focus][focus_order], marker="o", label="Keras")
+axes[1, 0].set(title="TotalUS conventional: actual vs predicted", xlabel="Date", ylabel="USD")
+axes[1, 0].legend()
+sns.histplot(y_test_raw - torch_prediction, bins=35, kde=True, ax=axes[1, 1], label="PyTorch", alpha=0.5)
+sns.histplot(y_test_raw - keras_prediction, bins=35, kde=True, ax=axes[1, 1], label="Keras", alpha=0.5)
+axes[1, 1].set(title="Residual distribution", xlabel="Actual - predicted")
+axes[1, 1].legend()
+plt.tight_layout()
+plt.show()
+\end{NotebookCode}
+\noindent\textit{Output của cell:}
+\begin{NotebookOutput}
+index=Keras RNN; MAE=0.1099; RMSE=0.1534; MAPE (%)=8.7926; R2=0.7490; Train time (s)=10.8845
+index=PyTorch RNN; MAE=0.1122; RMSE=0.1562; MAPE (%)=9.0260; R2=0.7398; Train time (s)=22.7235
+index=Persistence baseline; MAE=0.1199; RMSE=0.1742; MAPE (%)=9.5478; R2=0.6762; Train time (s)=0.0000
+\end{NotebookOutput}
+\noindent\textit{Output hình của cell: Hình~\ref{fig:avocado-eval}.}
+% END NOTEBOOK CELL avocado-28
 
 \sourcefig{../Assignment 06/images/generated/avocado_model_evaluation.png}{Đường học, actual--predicted và residual của Avocado trong notebook.}{fig:avocado-eval}
 
@@ -774,11 +2091,114 @@ Cách phân biệt này giúp đọc đúng kết quả thực nghiệm, thay v�
 CSV Amazon có 6.684 phiên và bảy cột, từ 15/05/1997 đến 05/12/2023. Notebook kiểm tra thứ tự
 ngày, dữ liệu thiếu và phân bố Close, biến động mỗi phiên, Volume. Hình~\ref{fig:essay03-a07-amazon-eda}
 chỉ mô tả giá lịch sử; phiên cuối không phải giá hiện tại.
-\begin{figure}[htbp]\centering\captionsetup{font={small,essaythreered}}
+% BEGIN NOTEBOOK CELL amazon07-8
+\par\medskip\noindent\textbf{Cell 8 --- EDA (notebook gốc).}
+\begin{NotebookCode}
+returns = df["Close"].pct_change().dropna() * 100
+fig, axes = plt.subplots(2, 2, figsize=(15, 9))
+axes[0,0].plot(df["Date"], df["Close"], lw=1, color="#2874a6")
+axes[0,0].set(title="AMZN Close theo thời gian", ylabel="USD")
+axes[0,1].hist(df["Close"], bins=60, color="#42a5f5", edgecolor="white")
+axes[0,1].set(title="Phân bố Close", xlabel="USD")
+axes[1,0].hist(returns.clip(-20,20), bins=60, color="#ed9b45", edgecolor="white")
+axes[1,0].set(title="Phân bố biến động mỗi phiên (cắt ở ±20% để dễ nhìn)", xlabel="%")
+axes[1,1].plot(df["Date"], df["Volume"], lw=.5, color="#52a46d")
+axes[1,1].set(title="Volume theo thời gian", ylabel="Cổ phiếu", yscale="log")
+for ax in axes.flat: ax.grid(alpha=.2)
+plt.tight_layout(); plt.show()
+\end{NotebookCode}
+\noindent\textit{Output hình của cell: Hình~\ref{fig:essay03-a07-amazon-eda}.}
+% END NOTEBOOK CELL amazon07-8
+
+\begin{figure}[H]\centering\captionsetup{font={small,essaythreered}}
 \includegraphics[width=0.93\textwidth]{../Assignment 07/images/generated/amazon_eda_overview.png}
 \caption{Khảo sát chuỗi giá, phân bố Close, biến động và Volume của Amazon.}
 \label{fig:essay03-a07-amazon-eda}
 \end{figure}
+
+% BEGIN NOTEBOOK CELL amazon07-10
+\par\medskip\noindent\textbf{Cell 10 --- xây và truy vấn Knowledge Graph (notebook gốc).}
+\begin{NotebookCode}
+graph = a07.build_graph(df)
+print("Số nút:", graph.number_of_nodes(), "| Số cạnh:", graph.number_of_edges())
+print("Bộ ba mẫu:")
+for triple in a07.graph_triples(graph): print(triple)
+node = a07.query_graph(graph, "2023-12-05")
+print("Graph Close:", node["Close"])
+assert node["Close"] == float(df.loc[df["Date"].eq("2023-12-05"), "Close"].iloc[0])
+\end{NotebookCode}
+\noindent\textit{Output của cell:}
+\begin{NotebookOutput}
+Số nút: 7032 | Số cạnh: 7031
+Bộ ba mẫu:
+('AMZN', 'has_year', 'year:1997')
+('year:1997', 'has_month', 'month:1997-05')
+('month:1997-05', 'has_session', 'day:1997-05-15')
+('AMZN', 'has_year', 'year:1998')
+('AMZN', 'has_year', 'year:1999')
+('AMZN', 'has_year', 'year:2000')
+Graph Close: 146.880005
+\end{NotebookOutput}
+% END NOTEBOOK CELL amazon07-10
+
+% BEGIN NOTEBOOK CELL amazon07-15
+\par\medskip\noindent\textbf{Cell 15 --- lập chỉ mục và truy xuất RAG (notebook gốc).}
+\begin{NotebookCode}
+documents = a07.build_documents(df)
+vectorizer, matrix = a07.build_index(documents)
+print("Tài liệu:", len(documents), "| Ma trận TF-IDF:", matrix.shape)
+for item in a07.retrieve("Amazon tháng 2023-12 Close và Volume", documents, vectorizer, matrix):
+    print(item["id"], "score=", item["score"], "|", item["text"][:110])
+\end{NotebookCode}
+\noindent\textit{Output của cell:}
+\begin{NotebookOutput}
+Tài liệu: 7005 | Ma trận TF-IDF: (7005, 58345)
+AMZN:month:2023-12 score= 0.2643 | Amazon AMZN tháng 2023-12: 3 phiên; giá Close trung bình 146.2500 USD, thấp nhất 144.8400 USD, cao nhất 147.03
+AMZN:month:2023-11 score= 0.2117 | Amazon AMZN tháng 2023-11: 21 phiên; giá Close trung bình 143.4576 USD, thấp nhất 137.0000 USD, cao nhất 147.7
+AMZN:month:2023-10 score= 0.2104 | Amazon AMZN tháng 2023-10: 22 phiên; giá Close trung bình 128.2786 USD, thấp nhất 119.5700 USD, cao nhất 133.0
+AMZN:month:2023-02 score= 0.1867 | Amazon AMZN tháng 2023-02: 19 phiên; giá Close trung bình 99.2142 USD, thấp nhất 93.5000 USD, cao nhất 112.910
+\end{NotebookOutput}
+% END NOTEBOOK CELL amazon07-15
+
+% BEGIN NOTEBOOK CELL amazon07-17
+\par\medskip\noindent\textbf{Cell 17 --- agent chọn nhánh công cụ (notebook gốc).}
+\begin{NotebookCode}
+agent = a07.AmazonAgent(df)
+for question in ["Giá Close ngày 2023-12-05 là bao nhiêu?", "Giá Close từ 2023-12-01 đến 2023-12-05?", "Giá mới nhất trong dữ liệu là gì?"]:
+    print("\nHỏi:", question)
+    print(agent.ask(question, generate=False))
+print("\nRAG không sinh:", agent.ask("Tóm tắt dữ liệu Amazon AMZN", generate=False))
+\end{NotebookCode}
+\noindent\textit{Output của cell:}
+\begin{NotebookOutput}
+
+Hỏi: Giá Close ngày 2023-12-05 là bao nhiêu?
+{'answer': 'Ngày 2023-12-05, Close của AMZN là 146.8800 USD.', 'sources': ['AMZN:2023-12-05'], 'tools': ['knowledge_graph']}
+
+Hỏi: Giá Close từ 2023-12-01 đến 2023-12-05?
+{'answer': 'Từ 2023-12-01 đến 2023-12-05 có 3 phiên. Close: trung bình 146.2500 USD; thấp nhất 144.8400 USD; cao nhất 147.0300 USD.', 'sources': ['AMZN.csv#Date=2023-12-01..2023-12-05'], 'tools': ['csv_statistics']}
+
+Hỏi: Giá mới nhất trong dữ liệu là gì?
+{'answer': 'Phiên cuối trong CSV là 2023-12-05; Close 146.8800 USD. Đây không phải giá hiện tại.', 'sources': ['AMZN:2023-12-05'], 'tools': ['knowledge_graph']}
+
+RAG không sinh: {'answer': 'Tóm tắt dữ liệu Amazon AMZN: 6684 phiên giao dịch từ 1997-05-15 đến 2023-12-05. Dataset gồm Date, Open, High, Low, Close, Adj Close và Volume. Đây là giá lịch sử trong CSV, không phải giá hiện tại hoặc dự báo.', 'sources': ['AMZN:overview'], 'tools': ['rag_retrieval']}
+\end{NotebookOutput}
+% END NOTEBOOK CELL amazon07-17
+
+% BEGIN NOTEBOOK CELL amazon07-19
+\par\medskip\noindent\textbf{Cell 19 --- sinh câu trả lời RAG bằng Qwen3 cục bộ (notebook gốc).}
+\begin{NotebookCode}
+RUN_LOCAL_LLM = True
+if RUN_LOCAL_LLM:
+    print(agent.ask("Tóm tắt dữ liệu Amazon AMZN", generate=True))
+else:
+    print("Đặt RUN_LOCAL_LLM=True để kiểm tra lượt sinh bằng Qwen3 cục bộ.")
+\end{NotebookCode}
+\noindent\textit{Output của cell:}
+\begin{NotebookOutput}
+{'answer': 'Tóm tắt dữ liệu Amazon AMZN: 6684 phiên giao dịch từ 1997-05-15 đến 2023-12-05.', 'sources': ['AMZN:overview'], 'tools': ['rag_retrieval', 'local_llm']}
+\end{NotebookOutput}
+% END NOTEBOOK CELL amazon07-19
 
 Graph có 7.032 node và 7.031 cạnh. Node phiên 05/12/2023 lưu Close
 $146{,}880005$ USD, được hiển thị làm tròn thành 146,88 USD. Corpus RAG có 7.005 tài liệu,
@@ -819,11 +2239,127 @@ CSV gốc có 100.000 bản ghi với chín cột; \texttt{age\_group} là cột
 không phải cột thứ mười của CSV. Notebook thấy 3.854 dòng trùng toàn bộ thuộc tính và 8.500
 bản ghi nhãn 1, bằng 8,50\%. Các đồ thị EDA mô tả nhãn, tuổi, BMI, HbA1c, glucose cùng một
 số nhóm danh mục. Dữ liệu quan sát này không thiết lập nguyên nhân gây bệnh.
-\begin{figure}[htbp]\centering\captionsetup{font={small,essaythreered}}
+% BEGIN NOTEBOOK CELL diabetes07-8
+\par\medskip\noindent\textbf{Cell 8 --- EDA (notebook gốc).}
+\begin{NotebookCode}
+fig, axes = plt.subplots(2, 3, figsize=(16, 9))
+counts = df["diabetes"].value_counts().sort_index()
+axes[0,0].bar(counts.index.astype(str), counts.values, color=["#4e9ac7", "#ec9467"])
+axes[0,0].set(title="Phân bố diabetes", xlabel="Nhãn", ylabel="Số bản ghi")
+for ax, col, color in [(axes[0,1],"age","#7bb7b2"),(axes[0,2],"bmi","#ae8ac4"),
+                       (axes[1,0],"HbA1c_level","#e4ad5d"),(axes[1,1],"blood_glucose_level","#79a1d6")]:
+    ax.hist(df[col], bins=35, color=color, edgecolor="white")
+    ax.set(title=f"Phân bố {col}", xlabel=col)
+by_gender = df.groupby("gender")["diabetes"].agg(["size","mean"])
+axes[1,2].bar(by_gender.index, by_gender["mean"]*100, color="#65a982")
+axes[1,2].set(title="Tỷ lệ nhãn 1 theo gender", ylabel="%")
+for ax in axes.flat: ax.grid(alpha=.2)
+plt.tight_layout(); plt.show()
+display(df.groupby("smoking_history")["diabetes"].agg(["size","mean"]).rename(columns={"size":"count","mean":"rate"}))
+\end{NotebookCode}
+\noindent\textit{Output của cell:}
+\begin{NotebookOutput}
+index=No Info; count=35816; rate=0.040596
+index=current; count=9286; rate=0.102089
+index=ever; count=4004; rate=0.117882
+index=former; count=9352; rate=0.170017
+index=never; count=35095; rate=0.095341
+index=not current; count=6447; rate=0.107027
+\end{NotebookOutput}
+\noindent\textit{Output hình của cell: Hình~\ref{fig:essay03-a07-diabetes-eda}.}
+% END NOTEBOOK CELL diabetes07-8
+
+\begin{figure}[H]\centering\captionsetup{font={small,essaythreered}}
 \includegraphics[width=0.93\textwidth]{../Assignment 07/images/generated/diabetes_eda_overview.png}
 \caption{Phân bố nhãn và các đặc trưng trong diabetes\_large.}
 \label{fig:essay03-a07-diabetes-eda}
 \end{figure}
+
+% BEGIN NOTEBOOK CELL diabetes07-10
+\par\medskip\noindent\textbf{Cell 10 --- xây và truy vấn Knowledge Graph (notebook gốc).}
+\begin{NotebookCode}
+graph = a07.build_graph(df)
+print("Số nút:", graph.number_of_nodes(), "| Số cạnh:", graph.number_of_edges())
+for triple in a07.graph_triples(graph): print(triple)
+node = a07.query_graph(graph, "gender", "Female")
+print("Nhóm Female:", node)
+raw = df.loc[df["gender"].eq("Female"), "diabetes"]
+assert node["count"] == len(raw)
+assert node["positive"] == int(raw.sum())
+\end{NotebookCode}
+\noindent\textit{Output của cell:}
+\begin{NotebookOutput}
+Số nút: 20 | Số cạnh: 51
+('dataset:diabetes_large', 'has_cohort', 'cohort:gender:Female')
+('cohort:gender:Female', 'positive_count', 'outcome:1')
+('cohort:gender:Female', 'negative_count', 'outcome:0')
+('dataset:diabetes_large', 'has_cohort', 'cohort:gender:Male')
+('dataset:diabetes_large', 'has_cohort', 'cohort:gender:Other')
+('dataset:diabetes_large', 'has_cohort', 'cohort:smoking_history:No Info')
+('dataset:diabetes_large', 'has_cohort', 'cohort:smoking_history:current')
+('dataset:diabetes_large', 'has_cohort', 'cohort:smoking_history:ever')
+Nhóm Female: {'kind': 'cohort', 'dimension': 'gender', 'value': 'Female', 'count': 58552, 'positive': 4461, 'rate': 0.0761886869790955}
+\end{NotebookOutput}
+% END NOTEBOOK CELL diabetes07-10
+
+% BEGIN NOTEBOOK CELL diabetes07-15
+\par\medskip\noindent\textbf{Cell 15 --- lập chỉ mục và truy xuất RAG (notebook gốc).}
+\begin{NotebookCode}
+documents = a07.build_documents(df)
+vectorizer, matrix = a07.build_index(documents)
+print("Tài liệu:", len(documents), "| Ma trận TF-IDF:", matrix.shape)
+for item in a07.retrieve("Tóm tắt diabetes gender Female", documents, vectorizer, matrix):
+    print(item["id"], "score=", item["score"], "|", item["text"][:120])
+\end{NotebookCode}
+\noindent\textit{Output của cell:}
+\begin{NotebookOutput}
+Tài liệu: 18 | Ma trận TF-IDF: (18, 1351)
+DIABETES:gender:Female score= 0.4447 | Nhóm gender=Female: 58552 bản ghi, 4461 nhãn diabetes=1, tỷ lệ 7.62%. Tỷ lệ mô tả dataset, không chứng minh quan hệ nhân
+DIABETES:gender:Male score= 0.2921 | Nhóm gender=Male: 41430 bản ghi, 4039 nhãn diabetes=1, tỷ lệ 9.75%. Tỷ lệ mô tả dataset, không chứng minh quan hệ nhân q
+DIABETES:gender:Other score= 0.2535 | Nhóm gender=Other: 18 bản ghi, 0 nhãn diabetes=1, tỷ lệ 0.00%. Tỷ lệ mô tả dataset, không chứng minh quan hệ nhân quả.
+DIABETES:overall score= 0.15 | Dataset diabetes_large có 100000 bản ghi, 8500 nhãn diabetes=1, 91500 nhãn diabetes=0; tỷ lệ nhãn 1 là 8.50%. Các trường
+\end{NotebookOutput}
+% END NOTEBOOK CELL diabetes07-15
+
+% BEGIN NOTEBOOK CELL diabetes07-17
+\par\medskip\noindent\textbf{Cell 17 --- agent chọn nhánh công cụ (notebook gốc).}
+\begin{NotebookCode}
+agent = a07.DiabetesAgent(df)
+for question in ["Tỷ lệ diabetes ở nữ là bao nhiêu?", "Tỷ lệ diabetes toàn dataset là bao nhiêu?", "Tỷ lệ diabetes nhóm 60+ là bao nhiêu?"]:
+    print("\nHỏi:", question)
+    print(agent.ask(question, generate=False))
+print("\nRAG không sinh:", agent.ask("Tóm tắt dữ liệu diabetes_large", generate=False))
+\end{NotebookCode}
+\noindent\textit{Output của cell:}
+\begin{NotebookOutput}
+
+Hỏi: Tỷ lệ diabetes ở nữ là bao nhiêu?
+{'answer': 'Nhóm gender=Female có 58,552 bản ghi; 4,461 nhãn diabetes=1; tỷ lệ 7.62%.', 'sources': ['DIABETES:gender:Female'], 'tools': ['knowledge_graph']}
+
+Hỏi: Tỷ lệ diabetes toàn dataset là bao nhiêu?
+{'answer': 'CSV có 100,000 bản ghi; 8,500 nhãn diabetes=1; tỷ lệ 8.50%.', 'sources': ['DIABETES:overall'], 'tools': ['csv_statistics']}
+
+Hỏi: Tỷ lệ diabetes nhóm 60+ là bao nhiêu?
+{'answer': 'Nhóm age_group=60+ có 25,055 bản ghi; 4,932 nhãn diabetes=1; tỷ lệ 19.68%.', 'sources': ['DIABETES:age_group:60+'], 'tools': ['knowledge_graph']}
+
+RAG không sinh: {'answer': 'Dataset diabetes_large có 100000 bản ghi, 8500 nhãn diabetes=1, 91500 nhãn diabetes=0; tỷ lệ nhãn 1 là 8.50%. Các trường: gender, age, hypertension, heart_disease, smoking_history, bmi, HbA1c_level, blood_glucose_level, diabetes. Đây là dữ liệu quan sát, không phải chẩn đoán.', 'sources': ['DIABETES:overall'], 'tools': ['rag_retrieval']}
+\end{NotebookOutput}
+% END NOTEBOOK CELL diabetes07-17
+
+% BEGIN NOTEBOOK CELL diabetes07-19
+\par\medskip\noindent\textbf{Cell 19 --- sinh câu trả lời RAG bằng Qwen3 cục bộ (notebook gốc).}
+\begin{NotebookCode}
+RUN_LOCAL_LLM = True
+if RUN_LOCAL_LLM:
+    print(agent.ask("Tóm tắt dữ liệu diabetes_large", generate=True))
+else:
+    print("Đặt RUN_LOCAL_LLM=True để kiểm tra lượt sinh bằng Qwen3 cục bộ.")
+\end{NotebookCode}
+\noindent\textit{Output của cell:}
+\begin{NotebookOutput}
+{'answer': 'Tóm tắt dữ liệu diabetes_large: có 100,000 bản ghi, 8500 nhãn 1 và 91500 nhãn 0, tỷ lệ nhãn 1 là 8.5%.', 'sources': ['DIABETES:overall'], 'tools': ['rag_retrieval', 'local_llm']}
+\end{NotebookOutput}
+% END NOTEBOOK CELL diabetes07-19
 
 Graph thống kê có 20 node và 51 cạnh; corpus gồm 18 tài liệu, ma trận TF-IDF kích thước
 $18\times1.351$. Nhóm nữ có 58.552 bản ghi, 4.461 nhãn \texttt{diabetes=1}, tỷ lệ
