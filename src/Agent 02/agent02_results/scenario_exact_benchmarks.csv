@@ -1,0 +1,7 @@
+scenario,never_discount,always_discount,rule_based,best_reference_state,best_reference_policy,best_extended_state,best_extended_policy
+discount 20% (reference),35.0,24.9,35.0,35.0,0000,35.0,00000000
+discount 5%,35.0,37.35,35.0,37.35,1111,37.35,11011101
+discount 10%,35.0,33.2,35.0,35.0,0000,35.0,00000000
+discount 30%,35.0,16.6,35.0,35.0,0000,35.0,00000000
+"revenue reward, 20%",70.0,66.4,70.0,70.0,0000,70.0,00000000
+"discount 5%, tit-for-tat",35.0,35.2125,35.0,35.675,0011,35.675,00001111

@@ -103,3 +103,7 @@ src/Assignment 05/Fashion-MNIST/data/*
 !src/Assignment 05/Fashion-MNIST/data/.gitkeep
 src/Assignment 05/CIFAR-100/data/*
 !src/Assignment 05/CIFAR-100/data/.gitkeep
+
+# Agent 02 optional Kaggle data (simulation does not need it)
+src/Agent 02/data/*
+!src/Agent 02/data/.gitkeep

@@ -1,0 +1,140 @@
+============================================================
+AGENT02: RL AGENT VS RULE-BASED AGENT
+============================================================
+Episodes: 5000
+Steps per episode: 20
+Evaluation episodes: 500
+Baseline seed: 42
+Multi-seed seeds: (11, 22, 33, 44, 55, 66, 77, 88, 99, 110)
+Output directory: /Users/macos/Docs/Kì 1 năm 4/PTHTTM/src/Agent 02/agent02_results
+
+============================================================
+QUESTION 3 AND 5: WORKED CALCULATIONS
+============================================================
+Q3: target = 6.0 + 0.9 * 5.0 = 10.50; TD error = 6.50; new Q = 4.0 + 0.1 * 6.50 = 4.65
+Q5: action 0: price = 10.00, profit per sale = 5.00
+Q5: action 1: price = 8.00, profit per sale = 3.00
+Q5: expected one-step profit E[S] * margin (competitor action b):
+    d=0, b=0: no discount = 15.00, discount = 13.50
+    d=0, b=1: no discount = 10.00, discount = 10.50
+    d=1, b=0: no discount = 55.00, discount = 42.00
+    d=1, b=1: no discount = 45.00, discount = 36.00
+
+============================================================
+EXPERIMENT A/B: BASELINE
+============================================================
+
+Separate evaluation results (500 episodes, seed 500042):
+RL vs Rule    | RL (Q-learning)  | total =  345565.0 | mean reward/step = 34.5565 | discount =     0 | no discount = 10000
+RL vs Rule    | Rule-based       | total =  346720.0 | mean reward/step = 34.6720 | discount =     0 | no discount = 10000
+Rule vs Rule  | Rule-based       | total =  345565.0 | mean reward/step = 34.5565 | discount =     0 | no discount = 10000
+Rule vs Rule  | Rule-based       | total =  346720.0 | mean reward/step = 34.6720 | discount =     0 | no discount = 10000
+
+Expected reward/step (exact): RL greedy = 35.0000, rule in seat 1 = 35.0000, best (d, c) policy = 35.0000 {(0, 0): 0, (0, 1): 0, (1, 0): 0, (1, 1): 0}
+
+Learned greedy policy:
+State (d=0, c=0): NO DISCOUNT
+State (d=0, c=1): NO DISCOUNT
+State (d=1, c=0): NO DISCOUNT
+State (d=1, c=1): NO DISCOUNT
+
+Baseline training windows (K = 500):
+     1-500 | RL = 33.474 | Rule = 32.862 | RL discount = 0.193
+  501-1000 | RL = 33.412 | Rule = 33.172 | RL discount = 0.139
+ 1001-1500 | RL = 33.382 | Rule = 32.620 | RL discount = 0.195
+ 1501-2000 | RL = 33.541 | Rule = 32.922 | RL discount = 0.201
+ 2001-2500 | RL = 33.015 | Rule = 32.439 | RL discount = 0.201
+ 2501-3000 | RL = 33.965 | Rule = 33.284 | RL discount = 0.170
+ 3001-3500 | RL = 33.841 | Rule = 33.472 | RL discount = 0.146
+ 3501-4000 | RL = 32.492 | Rule = 31.774 | RL discount = 0.232
+ 4001-4500 | RL = 33.321 | Rule = 32.849 | RL discount = 0.179
+ 4501-5000 | RL = 33.713 | Rule = 33.177 | RL discount = 0.131
+
+============================================================
+EXPERIMENT C: LEARNING RATE (10 seeds)
+============================================================
+alpha = 0.01                   | eval = 34.546 +- 1.328 | discount = 0.049 | exact = 34.558 | train = 32.245 (last 1000: 34.414) | changes = 17.1 | optimal = 9/10
+alpha = 0.10                   | eval = 34.724 +- 0.747 | discount = 0.040 | exact = 34.745 | train = 33.600 (last 1000: 33.566) | changes = 256.3 | optimal = 9/10
+alpha = 0.50                   | eval = 32.912 +- 2.457 | discount = 0.259 | exact = 32.940 | train = 31.876 (last 1000: 31.763) | changes = 827.7 | optimal = 5/10
+
+============================================================
+EXPERIMENT D: EXPLORATION (10 seeds)
+============================================================
+schedule 0.20->0.02            | eval = 34.724 +- 0.747 | discount = 0.040 | exact = 34.745 | train = 33.600 (last 1000: 33.566) | changes = 256.3 | optimal = 9/10
+fixed eps = 0.00               | eval = 29.719 +- 3.852 | discount = 0.415 | exact = 29.721 | train = 29.720 (last 1000: 29.689) | changes = 0.0 | optimal = 3/10
+fixed eps = 0.05               | eval = 33.775 +- 2.267 | discount = 0.130 | exact = 33.761 | train = 32.907 (last 1000: 32.929) | changes = 502.3 | optimal = 7/10
+fixed eps = 0.30               | eval = 29.476 +- 3.104 | discount = 0.461 | exact = 29.461 | train = 30.910 (last 1000: 31.055) | changes = 1217.0 | optimal = 2/10
+schedule 0.50->0.05            | eval = 32.411 +- 2.656 | discount = 0.300 | exact = 32.433 | train = 32.867 (last 1000: 32.876) | changes = 505.2 | optimal = 4/10
+
+============================================================
+EXPERIMENT E: FAIR COMPARISON RL vs RULE (10 seeds)
+============================================================
+
+Suggested results table (evaluation, 10 seeds):
+RL, baseline (alpha=0.10, schedule)    | mean = 34.724 | std = 0.747 | discount rate = 0.040
+RL, low learning rate (alpha=0.01)     | mean = 34.546 | std = 1.328 | discount rate = 0.049
+RL, high learning rate (alpha=0.50)    | mean = 32.912 | std = 2.457 | discount rate = 0.259
+RL, fixed eps = 0.05                   | mean = 33.775 | std = 2.267 | discount rate = 0.130
+RL, fixed eps = 0.30                   | mean = 29.476 | std = 3.104 | discount rate = 0.461
+Rule-based                             | mean = 34.985 | std = 0.178 | discount rate = 0.000
+
+Paired difference RL - Rule: mean = -0.2617, std = 0.8276, 95% CI = [-0.8537, 0.3303]
+
+============================================================
+QUESTION 8: TWO INDEPENDENT Q-LEARNERS (10 seeds)
+============================================================
+seed  11 | policies 0100 / 0000 | eval = 35.19 / 35.26 | changes = 271 / 271
+seed  22 | policies 0000 / 0101 | eval = 34.88 / 35.13 | changes = 274 / 286
+seed  33 | policies 0101 / 0000 | eval = 35.26 / 35.23 | changes = 281 / 296
+seed  44 | policies 1010 / 1101 | eval = 28.73 / 29.90 | changes = 272 / 271
+seed  55 | policies 0000 / 0100 | eval = 34.95 / 35.09 | changes = 284 / 288
+seed  66 | policies 0000 / 1000 | eval = 32.27 / 34.20 | changes = 288 / 297
+seed  77 | policies 1100 / 0100 | eval = 33.42 / 32.64 | changes = 247 / 262
+seed  88 | policies 0101 / 0101 | eval = 34.78 / 34.82 | changes = 329 / 316
+seed  99 | policies 0011 / 0100 | eval = 27.31 / 29.62 | changes = 294 / 291
+seed 110 | policies 0100 / 1100 | eval = 32.89 / 33.76 | changes = 275 / 296
+
+RL vs RL: eval = 33.266 +- 2.469, discount = 0.187, policy changes in second half = 284.4 (RL vs fixed rule: 256.3)
+
+============================================================
+QUESTION 9/10: MODIFIED MARKETS AND EXTENDED-STATE AGENT
+============================================================
+
+Exact benchmarks (expected reward per step):
+discount 20% (reference)    | never = 35.000 | always = 24.900 | rule = 35.000 | best (d,c) = 35.000 [0000] | best (d,c,own) = 35.000 [00000000]
+discount 5%                 | never = 35.000 | always = 37.350 | rule = 35.000 | best (d,c) = 37.350 [1111] | best (d,c,own) = 37.350 [11011101]
+discount 10%                | never = 35.000 | always = 33.200 | rule = 35.000 | best (d,c) = 35.000 [0000] | best (d,c,own) = 35.000 [00000000]
+discount 30%                | never = 35.000 | always = 16.600 | rule = 35.000 | best (d,c) = 35.000 [0000] | best (d,c,own) = 35.000 [00000000]
+revenue reward, 20%         | never = 70.000 | always = 66.400 | rule = 70.000 | best (d,c) = 70.000 [0000] | best (d,c,own) = 70.000 [00000000]
+discount 5%, tit-for-tat    | never = 35.000 | always = 35.212 | rule = 35.000 | best (d,c) = 35.675 [0011] | best (d,c,own) = 35.675 [00001111]
+
+Multi-seed evaluation:
+discount 20% (reference)    | Rule-based                     | eval = 34.985 +- 0.178 | discount = 0.000 | exact = 35.000
+discount 20% (reference)    | RL reference (d, c)            | eval = 34.724 +- 0.747 | discount = 0.040 | exact = 34.745 | train = 33.600 (last 1000: 33.566) | changes = 256.3 | optimal = 9/10
+discount 20% (reference)    | RL extended (d, c, own)        | eval = 33.073 +- 1.914 | discount = 0.242 | exact = 33.113 | train = 33.888 (last 1000: 33.860) | changes = 183.3 | optimal = 4/10
+discount 20% (reference)    | Model-based (proposed)         | eval = 34.985 +- 0.178 | discount = 0.000 | exact = 35.000 | train = 34.803 (last 1000: 34.833) | changes = 0.0 | optimal = 10/10
+discount 5%                 | Rule-based                     | eval = 34.985 +- 0.178 | discount = 0.000 | exact = 35.000
+discount 5%                 | RL reference (d, c)            | eval = 36.720 +- 0.696 | discount = 0.754 | exact = 36.720 | train = 36.636 (last 1000: 36.590) | changes = 321.3 | optimal = 2/10
+discount 5%                 | RL extended (d, c, own)        | eval = 36.506 +- 0.623 | discount = 0.683 | exact = 36.482 | train = 36.360 (last 1000: 36.296) | changes = 334.1 | optimal = 1/10
+discount 5%                 | Model-based (proposed)         | eval = 37.329 +- 0.139 | discount = 0.980 | exact = 37.330 | train = 37.252 (last 1000: 37.263) | changes = 2.3 | optimal = 9/10
+discount 10%                | Rule-based                     | eval = 34.985 +- 0.178 | discount = 0.000 | exact = 35.000
+discount 10%                | RL reference (d, c)            | eval = 33.847 +- 0.591 | discount = 0.500 | exact = 33.851 | train = 33.954 (last 1000: 33.900) | changes = 338.5 | optimal = 1/10
+discount 10%                | RL extended (d, c, own)        | eval = 33.870 +- 0.387 | discount = 0.413 | exact = 33.879 | train = 34.020 (last 1000: 34.006) | changes = 306.7 | optimal = 1/10
+discount 10%                | Model-based (proposed)         | eval = 34.985 +- 0.178 | discount = 0.000 | exact = 35.000 | train = 34.854 (last 1000: 34.924) | changes = 1.5 | optimal = 10/10
+discount 30%                | Rule-based                     | eval = 34.985 +- 0.178 | discount = 0.000 | exact = 35.000
+discount 30%                | RL reference (d, c)            | eval = 34.541 +- 1.317 | discount = 0.040 | exact = 34.561 | train = 33.864 (last 1000: 34.000) | changes = 186.8 | optimal = 9/10
+discount 30%                | RL extended (d, c, own)        | eval = 34.030 +- 2.200 | discount = 0.071 | exact = 34.048 | train = 34.110 (last 1000: 34.276) | changes = 82.0 | optimal = 8/10
+discount 30%                | Model-based (proposed)         | eval = 34.985 +- 0.178 | discount = 0.000 | exact = 35.000 | train = 34.651 (last 1000: 34.736) | changes = 0.0 | optimal = 10/10
+revenue reward, 20%         | Rule-based                     | eval = 69.971 +- 0.357 | discount = 0.000 | exact = 70.000
+revenue reward, 20%         | RL reference (d, c)            | eval = 67.693 +- 1.181 | discount = 0.500 | exact = 67.702 | train = 67.907 (last 1000: 67.800) | changes = 338.5 | optimal = 1/10
+revenue reward, 20%         | RL extended (d, c, own)        | eval = 67.740 +- 0.774 | discount = 0.413 | exact = 67.758 | train = 68.041 (last 1000: 68.011) | changes = 306.7 | optimal = 1/10
+revenue reward, 20%         | Model-based (proposed)         | eval = 69.971 +- 0.357 | discount = 0.000 | exact = 70.000 | train = 69.708 (last 1000: 69.849) | changes = 1.5 | optimal = 10/10
+discount 5%, tit-for-tat    | Rule-based                     | eval = 34.985 +- 0.178 | discount = 0.000 | exact = 35.000
+discount 5%, tit-for-tat    | RL reference (d, c)            | eval = 35.163 +- 0.456 | discount = 0.609 | exact = 35.136 | train = 35.116 (last 1000: 35.097) | changes = 313.9 | optimal = 1/10
+discount 5%, tit-for-tat    | RL extended (d, c, own)        | eval = 34.975 +- 0.382 | discount = 0.440 | exact = 34.958 | train = 34.987 (last 1000: 34.944) | changes = 322.8 | optimal = 0/10
+discount 5%, tit-for-tat    | Model-based (proposed)         | eval = 35.590 +- 0.184 | discount = 0.551 | exact = 35.590 | train = 35.527 (last 1000: 35.536) | changes = 1.4 | optimal = 5/10
+
+============================================================
+ALL EXPERIMENTS COMPLETED
+============================================================
+Results saved to: /Users/macos/Docs/Kì 1 năm 4/PTHTTM/src/Agent 02/agent02_results

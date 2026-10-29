@@ -1,0 +1,7 @@
+Baseline RL agent (seed 42)
+Q[d, c, action]; Action 0 = no discount; Action 1 = discount
+State=(0, 0) | Q0=209.034622 | Q1=200.012813 | Greedy action=0
+State=(0, 1) | Q0=227.101684 | Q1=181.167889 | Greedy action=0
+State=(1, 0) | Q0=266.318271 | Q1=228.504950 | Greedy action=0
+State=(1, 1) | Q0=228.334394 | Q1=219.318896 | Greedy action=0
+

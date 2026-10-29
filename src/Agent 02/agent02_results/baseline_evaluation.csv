@@ -1,0 +1,5 @@
+run,agent,seat,total_reward,mean_reward_per_step,mean_profit_per_step,no_discount_actions,discount_actions,discount_action_rate
+RL vs Rule,RL (Q-learning),Agent 1,345565.0,34.5565,34.5565,10000,0,0.0
+RL vs Rule,Rule-based,Agent 2,346720.0,34.672,34.672,10000,0,0.0
+Rule vs Rule,Rule-based,Agent 1,345565.0,34.5565,34.5565,10000,0,0.0
+Rule vs Rule,Rule-based,Agent 2,346720.0,34.672,34.672,10000,0,0.0
