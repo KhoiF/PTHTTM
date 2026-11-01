@@ -119,3 +119,6 @@ src/Assignment 05/CIFAR-100/data/*
 # Agent 02 optional Kaggle data (simulation does not need it)
 src/Agent 02/data/*
 !src/Agent 02/data/.gitkeep
+
+# Trained model weights (chạy lại notebook/script trong từng assignment để sinh)
+*.sav
