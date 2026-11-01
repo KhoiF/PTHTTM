@@ -40,6 +40,8 @@ wheels/
 # Jupyter Notebook
 .ipynb_checkpoints/
 */.ipynb_checkpoints/*
+.virtual_documents/
+*.nbconvert.ipynb
 
 # Keep intentionally empty folders in Git
 !.gitkeep
@@ -82,6 +84,16 @@ wheels/
 huggingface_cache/
 transformers_cache/
 torch_cache/
+
+# Flask / web app runtime
+# The deployment READMEs run the apps with `nohup python REST_API.py &`
+nohup.out
+*.pid
+instance/
+flask_session/
+
+# Local scratch folder at the repo root
+/tmp/
 
 # Microsoft Office temporary files
 ~$*

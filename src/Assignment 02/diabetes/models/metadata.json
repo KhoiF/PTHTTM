@@ -1,0 +1,103 @@
+{
+  "task": "binary_classification",
+  "dataset": "Pima Indians Diabetes",
+  "n_samples": 768,
+  "deploy_features": [
+    "Glucose",
+    "BMI",
+    "Age",
+    "Pregnancies",
+    "SkinThickness",
+    "Insulin"
+  ],
+  "optimal_k": 39,
+  "random_state": 18,
+  "default_model": "knn",
+  "best_model": "knn",
+  "feature_means": {
+    "Glucose": 121.68,
+    "BMI": 32.43,
+    "Age": 33.24,
+    "Pregnancies": 3.85,
+    "SkinThickness": 29.09,
+    "Insulin": 155.55
+  },
+  "models": {
+    "knn": {
+      "file": "knn.sav",
+      "display_name": "K-Nearest Neighbors",
+      "features": [
+        "Glucose",
+        "BMI",
+        "Age",
+        "Pregnancies",
+        "SkinThickness",
+        "Insulin"
+      ],
+      "test_metrics": {
+        "Accuracy": 0.7403,
+        "Precision": 0.6522,
+        "Recall": 0.5556,
+        "F1-score": 0.6,
+        "ROC-AUC": 0.8129
+      }
+    },
+    "logistic_regression": {
+      "file": "logistic_regression.sav",
+      "display_name": "Logistic Regression",
+      "features": [
+        "Glucose",
+        "BMI",
+        "Age",
+        "Pregnancies",
+        "SkinThickness",
+        "Insulin"
+      ],
+      "test_metrics": {
+        "Accuracy": 0.7208,
+        "Precision": 0.6279,
+        "Recall": 0.5,
+        "F1-score": 0.5567,
+        "ROC-AUC": 0.8089
+      }
+    },
+    "svm_linear": {
+      "file": "svm_linear.sav",
+      "display_name": "SVM Linear",
+      "features": [
+        "Glucose",
+        "BMI",
+        "Age",
+        "Pregnancies",
+        "SkinThickness",
+        "Insulin"
+      ],
+      "test_metrics": {
+        "Accuracy": 0.7208,
+        "Precision": 0.6341,
+        "Recall": 0.4815,
+        "F1-score": 0.5474,
+        "ROC-AUC": 0.8098
+      }
+    },
+    "svm_rbf": {
+      "file": "svm_rbf.sav",
+      "display_name": "SVM RBF",
+      "features": [
+        "Glucose",
+        "BMI",
+        "Age",
+        "Pregnancies",
+        "SkinThickness",
+        "Insulin"
+      ],
+      "test_metrics": {
+        "Accuracy": 0.7208,
+        "Precision": 0.6078,
+        "Recall": 0.5741,
+        "F1-score": 0.5905,
+        "ROC-AUC": 0.824
+      }
+    }
+  }
+}

@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dự đoán giá nhà</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-a: #eef6f1;
+    --bg-b: #f2f6fb;
+    --card: #ffffff;
+    --ink: #1b3028;
+    --muted: #6c8580;
+    --line: #dde8e2;
+    --accent: #11845c;
+    --result-bg: #f0faf5;
+    --result-line: #bfe5d2;
+    --err-bg: #fdf2f2;
+    --err-line: #f3c3c3;
+    --err-ink: #b02a2a;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    padding: 32px 16px 56px;
+    background: linear-gradient(135deg, var(--bg-a), var(--bg-b));
+    font-family: "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", sans-serif;
+    color: var(--ink);
+    min-height: 100vh;
+  }
+
+  .card {
+    max-width: 780px;
+    margin: 0 auto;
+    background: var(--card);
+    border-radius: 24px;
+    padding: 40px 36px 36px;
+    box-shadow: 0 18px 50px rgba(27, 48, 40, .10);
+  }
+
+  .badge {
+    display: block;
+    text-align: center;
+    font-size: .78rem;
+    font-weight: 700;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 10px;
+  }
+
+  h1 {
+    margin: 0 0 12px;
+    font-size: clamp(1.7rem, 4.5vw, 2.3rem);
+    font-weight: 800;
+    text-align: center;
+    letter-spacing: -.02em;
+  }
+
+  .subtitle {
+    margin: 0 auto 30px;
+    max-width: 580px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 1rem;
+    line-height: 1.6;
+  }
+
+  .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 20px; }
+  .field.full { grid-column: 1 / -1; }
+
+  label { display: block; margin-bottom: 8px; font-weight: 600; font-size: .94rem; }
+  .hint { display: block; font-weight: 400; font-size: .82rem; color: var(--muted); margin-top: 2px; }
+
+  input, select {
+    width: 100%;
+    padding: 14px 16px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: #fff;
+    font: inherit;
+    font-size: 1rem;
+    color: var(--ink);
+  }
+
+  input:focus, select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(17, 132, 92, .15);
+  }
+
+  button {
+    grid-column: 1 / -1;
+    margin-top: 14px;
+    padding: 17px;
+    border: 0;
+    border-radius: 14px;
+    background: var(--accent);
+    color: #fff;
+    font: inherit;
+    font-size: 1.05rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 10px 24px rgba(17, 132, 92, .26);
+  }
+
+  button:hover:not(:disabled) { filter: brightness(1.07); }
+  button:disabled { opacity: .6; cursor: progress; }
+
+  .result {
+    margin-top: 28px;
+    padding: 30px 24px;
+    border-radius: 16px;
+    border: 1px solid var(--result-line);
+    background: var(--result-bg);
+    text-align: center;
+  }
+
+  .result.error { border-color: var(--err-line); background: var(--err-bg); }
+
+  .result .label {
+    margin: 0;
+    font-size: .9rem;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .result .price {
+    margin: 10px 0 4px;
+    font-size: clamp(2.2rem, 8vw, 3.2rem);
+    font-weight: 800;
+    color: var(--accent);
+    letter-spacing: -.03em;
+  }
+
+  .result.error .price { font-size: 1.3rem; color: var(--err-ink); }
+  .result p { margin: 6px 0; color: var(--muted); font-size: 1rem; }
+  .result b { color: var(--ink); }
+
+  .summary {
+    margin: 18px auto 0;
+    max-width: 480px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px 16px;
+    text-align: left;
+    font-size: .9rem;
+    color: var(--muted);
+  }
+
+  .summary span b { color: var(--ink); }
+
+  .metrics {
+    margin-top: 26px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+    font-size: .88rem;
+    color: var(--muted);
+    line-height: 1.7;
+  }
+
+  .metrics b { color: var(--ink); }
+
+  .disclaimer {
+    margin: 22px auto 0;
+    max-width: 620px;
+    text-align: center;
+    color: var(--muted);
+    font-size: .86rem;
+    line-height: 1.6;
+  }
+
+  @media (max-width: 640px) {
+    body { padding: 20px 14px 40px; }
+    .card { padding: 28px 20px 26px; border-radius: 20px; }
+    .grid, .summary { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+  <main class="card">
+    <span class="badge">Ứng dụng 2 &middot; Hồi quy</span>
+    <h1>Dự đoán giá nhà</h1>
+    <p class="subtitle">
+      Nhập 5 thông tin cơ bản của căn nhà để hệ thống ước lượng giá bán theo dữ liệu
+      bất động sản Việt Nam.
+    </p>
+
+    <form id="form" class="grid">
+      <div class="field full">
+        <label for="model">Mô hình dự đoán</label>
+        <select id="model" name="model">
+          {% for m in models %}
+            <option value="{{ m.key }}" {% if m.key == default_model %}selected{% endif %}>
+              {{ m.name }} — RMSE {{ "%.3f"|format(m.metrics["RMSE"]) }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="Floors">Số tầng <span class="hint">Floors</span></label>
+        <input type="number" id="Floors" name="Floors" value="3" min="1" step="1" required>
+      </div>
+
+      <div class="field">
+        <label for="Bedrooms">Số phòng ngủ <span class="hint">Bedrooms</span></label>
+        <input type="number" id="Bedrooms" name="Bedrooms" value="3" min="1" step="1" required>
+      </div>
+
+      <div class="field">
+        <label for="Bathrooms">Số phòng vệ sinh <span class="hint">Bathrooms</span></label>
+        <input type="number" id="Bathrooms" name="Bathrooms" value="2" min="1" step="1" required>
+      </div>
+
+      <div class="field">
+        <label for="Legal status">Tình trạng pháp lý <span class="hint">Legal status</span></label>
+        <select id="Legal status" name="Legal status">
+          {% for option in legal_options %}
+            <option value="{{ option.value }}" {% if option.value == "Sale contract" %}selected{% endif %}>{{ option.label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="field full">
+        <label for="Furniture state">Tình trạng nội thất <span class="hint">Furniture state</span></label>
+        <select id="Furniture state" name="Furniture state">
+          {% for option in furniture_options %}
+            <option value="{{ option.value }}" {% if option.value == "Basic" %}selected{% endif %}>{{ option.label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <button type="submit" id="submit">Dự đoán giá</button>
+    </form>
+
+    <div id="result" hidden></div>
+
+    <div class="metrics">
+      <b>Hiệu năng trên tập kiểm tra:</b><br>
+      {% for m in models %}
+        {{ m.name }} — MAE {{ "%.3f"|format(m.metrics["MAE"]) }},
+        RMSE {{ "%.3f"|format(m.metrics["RMSE"]) }},
+        R² {{ "%.3f"|format(m.metrics["R2"]) }}<br>
+      {% endfor %}
+    </div>
+
+    <p class="disclaimer">
+      Giá dự đoán là ước lượng thống kê từ 5 đặc trưng trên; chưa tính đến vị trí và diện tích
+      thực tế nên chỉ mang tính tham khảo.
+    </p>
+  </main>
+
+<script>
+  const form = document.getElementById("form");
+  const submit = document.getElementById("submit");
+  const resultBox = document.getElementById("result");
+
+  const escapeHtml = (value) =>
+    String(value ?? "").replace(/[&<>"']/g, (ch) => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+    })[ch]);
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    submit.disabled = true;
+    submit.textContent = "Đang tính toán...";
+
+    const payload = Object.fromEntries(new FormData(form).entries());
+
+    try {
+      const response = await fetch("/house/v1/predict", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.error || "Không gọi được API.");
+
+      const selectedLabel = (name) => {
+        const select = form.elements[name];
+        return select?.options[select.selectedIndex]?.textContent.trim() || payload[name];
+      };
+      const legalLabel = selectedLabel("Legal status");
+      const furnitureLabel = selectedLabel("Furniture state");
+
+      resultBox.className = "result";
+      resultBox.innerHTML = `
+        <p class="label">Giá dự đoán</p>
+        <p class="price">${escapeHtml(data.price)} ${escapeHtml(data.unit)}</p>
+        <p>Mô hình: <b>${escapeHtml(data.model_name)}</b></p>
+        <div class="summary">
+          <span>Số tầng: <b>${escapeHtml(payload.Floors)}</b></span>
+          <span>Phòng ngủ: <b>${escapeHtml(payload.Bedrooms)}</b></span>
+          <span>Phòng vệ sinh: <b>${escapeHtml(payload.Bathrooms)}</b></span>
+          <span>Pháp lý: <b>${escapeHtml(legalLabel)}</b></span>
+          <span>Nội thất: <b>${escapeHtml(furnitureLabel)}</b></span>
+          <span>RMSE mô hình: <b>${escapeHtml(data.metrics.RMSE)}</b></span>
+        </div>
+      `;
+      resultBox.hidden = false;
+    } catch (error) {
+      resultBox.className = "result error";
+      resultBox.innerHTML = `<p class="label">Lỗi</p><p class="price">${escapeHtml(error.message)}</p>`;
+      resultBox.hidden = false;
+    } finally {
+      submit.disabled = false;
+      submit.textContent = "Dự đoán giá";
+    }
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,76 @@
+{
+  "task": "regression",
+  "dataset": "Vietnam Housing Dataset 2024",
+  "n_samples": 29743,
+  "target": "Price",
+  "target_unit": "tỷ VNĐ",
+  "numeric_features": [
+    "Floors",
+    "Bedrooms",
+    "Bathrooms"
+  ],
+  "category_features": [
+    "Legal status",
+    "Furniture state"
+  ],
+  "features": [
+    "Floors",
+    "Bedrooms",
+    "Bathrooms",
+    "Legal status",
+    "Furniture state"
+  ],
+  "preprocessor": "preprocessor.sav",
+  "default_model": "decision_tree",
+  "best_model": "random_forest",
+  "category_options": {
+    "Legal status": [
+      "Have certificate",
+      "Sale contract",
+      "Unknown"
+    ],
+    "Furniture state": [
+      "Basic",
+      "Full",
+      "Unknown"
+    ]
+  },
+  "models": {
+    "linear_regression": {
+      "file": "linear_regression.sav",
+      "display_name": "Linear Regression",
+      "test_metrics": {
+        "MAE": 1.6253,
+        "RMSE": 1.9764,
+        "R²": 0.1682
+      }
+    },
+    "decision_tree": {
+      "file": "decision_tree.sav",
+      "display_name": "Decision Tree Regressor",
+      "test_metrics": {
+        "MAE": 1.5923,
+        "RMSE": 1.9637,
+        "R²": 0.1789
+      }
+    },
+    "random_forest": {
+      "file": "random_forest.sav",
+      "display_name": "Random Forest Regressor",
+      "test_metrics": {
+        "MAE": 1.5864,
+        "RMSE": 1.9516,
+        "R²": 0.189
+      }
+    },
+    "svr": {
+      "file": "svr.sav",
+      "display_name": "Support Vector Regression",
+      "test_metrics": {
+        "MAE": 1.5696,
+        "RMSE": 1.9521,
+        "R²": 0.1886
+      }
+    }
+  }
+}

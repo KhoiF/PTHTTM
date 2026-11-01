@@ -1,0 +1,77 @@
+{
+  "task": "binary_classification",
+  "dataset": "Womens Clothing E-Commerce Reviews",
+  "n_samples": 22642,
+  "target": "Recommended IND",
+  "text_fields": [
+    "Title",
+    "Review Text"
+  ],
+  "vectorizer": "tfidf_vectorizer.sav",
+  "vectorizer_params": {
+    "ngram_range": [
+      1,
+      2
+    ],
+    "min_df": 2,
+    "max_features": 5000,
+    "stop_words": "english"
+  },
+  "random_state": 42,
+  "default_model": "logistic_regression",
+  "best_f1_model": "naive_bayes",
+  "labels": {
+    "0": "Không khuyến nghị",
+    "1": "Khuyến nghị"
+  },
+  "models": {
+    "logistic_regression": {
+      "file": "logistic_regression.sav",
+      "display_name": "Logistic Regression (Balanced)",
+      "has_proba": true,
+      "test_metrics": {
+        "Accuracy": 0.879,
+        "Precision": 0.9634,
+        "Recall": 0.886,
+        "F1-score": 0.923,
+        "ROC-AUC": 0.9406
+      }
+    },
+    "linear_svm": {
+      "file": "linear_svm.sav",
+      "display_name": "Linear SVM",
+      "has_proba": false,
+      "test_metrics": {
+        "Accuracy": 0.8752,
+        "Precision": 0.9481,
+        "Recall": 0.8967,
+        "F1-score": 0.9217,
+        "ROC-AUC": 0.9266
+      }
+    },
+    "naive_bayes": {
+      "file": "naive_bayes.sav",
+      "display_name": "Multinomial Naive Bayes",
+      "has_proba": true,
+      "test_metrics": {
+        "Accuracy": 0.8777,
+        "Precision": 0.8847,
+        "Recall": 0.9782,
+        "F1-score": 0.9291,
+        "ROC-AUC": 0.9359
+      }
+    },
+    "sgd": {
+      "file": "sgd.sav",
+      "display_name": "SGD Classifier",
+      "has_proba": true,
+      "test_metrics": {
+        "Accuracy": 0.8764,
+        "Precision": 0.9544,
+        "Recall": 0.8916,
+        "F1-score": 0.9219,
+        "ROC-AUC": 0.9303
+      }
+    }
+  }
+}

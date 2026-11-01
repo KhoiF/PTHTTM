@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Định Giá Bất Động Sản</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --page-bg-a: #e9f7ee;
+    --page-bg-b: #f4fbf6;
+    --card: #ffffff;
+    --ink: #1d3a2c;
+    --muted: #6b8579;
+    --line: #d9e8df;
+    --accent: #45b377;
+    --accent-dark: #1f7a4d;
+    --ok-bg: #f2fbf5;
+    --ok-line: #c2e7d1;
+    --err-bg: #fdf3f3;
+    --err-line: #f2c6c6;
+    --err-ink: #b02a2a;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    padding: 32px 16px 56px;
+    background: linear-gradient(135deg, var(--page-bg-a), var(--page-bg-b));
+    font-family: "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", sans-serif;
+    color: var(--ink);
+    min-height: 100vh;
+  }
+
+  .card {
+    max-width: 780px;
+    margin: 0 auto;
+    background: var(--card);
+    border-radius: 24px;
+    padding: 40px 36px 36px;
+    box-shadow: 0 18px 50px rgba(29, 58, 44, .10);
+  }
+
+  h1 {
+    margin: 0 0 12px;
+    font-size: clamp(1.75rem, 5vw, 2.45rem);
+    font-weight: 800;
+    text-align: center;
+    color: var(--accent-dark);
+    letter-spacing: -.02em;
+  }
+
+  .subtitle {
+    margin: 0 auto 32px;
+    max-width: 580px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 1rem;
+    line-height: 1.6;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px 20px;
+  }
+
+  .field.full { grid-column: 1 / -1; }
+
+  label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    font-size: .94rem;
+  }
+
+  input, select {
+    width: 100%;
+    padding: 14px 16px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: #fff;
+    font: inherit;
+    font-size: 1rem;
+    color: var(--ink);
+  }
+
+  input:focus, select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(69, 179, 119, .18);
+  }
+
+  button {
+    grid-column: 1 / -1;
+    margin-top: 14px;
+    padding: 17px;
+    border: 0;
+    border-radius: 14px;
+    background: var(--accent);
+    color: #fff;
+    font: inherit;
+    font-size: 1.05rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 10px 24px rgba(69, 179, 119, .3);
+  }
+
+  button:hover:not(:disabled) { filter: brightness(1.06); }
+  button:disabled { opacity: .6; cursor: progress; }
+
+  .result {
+    margin-top: 28px;
+    padding: 28px 24px;
+    border-radius: 16px;
+    border: 1px solid var(--ok-line);
+    background: var(--ok-bg);
+    text-align: center;
+  }
+
+  .result.error {
+    border-color: var(--err-line);
+    background: var(--err-bg);
+  }
+
+  .price {
+    margin: 0 0 12px;
+    font-size: clamp(1.4rem, 4.5vw, 2rem);
+    font-weight: 800;
+    color: var(--accent-dark);
+    letter-spacing: -.01em;
+  }
+
+  .result.error .price { color: var(--err-ink); }
+
+  .result p {
+    margin: 6px 0;
+    color: var(--muted);
+    font-size: 1rem;
+  }
+
+  .result b { color: var(--ink); }
+
+  .disclaimer {
+    margin: 26px auto 0;
+    max-width: 620px;
+    text-align: center;
+    color: var(--muted);
+    font-size: .86rem;
+    line-height: 1.6;
+  }
+
+  @media (max-width: 640px) {
+    body { padding: 20px 16px 40px; }
+    .card { padding: 28px 20px 26px; border-radius: 20px; }
+    .grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+  <main class="card">
+    <h1>AI Định Giá Bất Động Sản</h1>
+    <p class="subtitle">
+      Nhập thông tin mô tả chi tiết của căn nhà để hệ thống dự báo mức giá phù hợp trên thị trường.
+    </p>
+
+    <form id="form" class="grid">
+      <div class="field full">
+        <label for="model">Mô hình AI dự đoán (Model)</label>
+        <select id="model" name="model">
+          {% for m in models %}
+            <option value="{{ m.key }}" {% if m.key == default_model %}selected{% endif %}>{{ m.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="Floors">Số tầng (Floors)</label>
+        <input type="number" id="Floors" name="Floors" value="3" min="1" step="1" required>
+      </div>
+
+      <div class="field">
+        <label for="Bedrooms">Số phòng ngủ (Bedrooms)</label>
+        <input type="number" id="Bedrooms" name="Bedrooms" value="3" min="1" step="1" required>
+      </div>
+
+      <div class="field">
+        <label for="Bathrooms">Số phòng vệ sinh (Bathrooms)</label>
+        <input type="number" id="Bathrooms" name="Bathrooms" value="2" min="1" step="1" required>
+      </div>
+
+      <div class="field">
+        <label for="legal">Tình trạng pháp lý (Legal status)</label>
+        <select id="legal" name="Legal status">
+          {% for option in legal_options %}
+            <option value="{{ option.value }}" {% if option.value == "Sale contract" %}selected{% endif %}>{{ option.label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="furniture">Nội thất (Furniture state)</label>
+        <select id="furniture" name="Furniture state">
+          {% for option in furniture_options %}
+            <option value="{{ option.value }}" {% if option.value == "Basic" %}selected{% endif %}>{{ option.label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <button type="submit" id="submit">Định giá ngay</button>
+    </form>
+
+    <div id="result" hidden></div>
+
+    <p class="disclaimer">
+      Mức giá trên chỉ mang tính chất dự báo dựa trên dữ liệu lịch sử và không đại diện cho
+      thẩm định giá chính thức.
+    </p>
+  </main>
+
+<script>
+  const form = document.getElementById("form");
+  const submit = document.getElementById("submit");
+  const resultBox = document.getElementById("result");
+
+  const escapeHtml = (value) =>
+    String(value ?? "").replace(/[&<>"']/g, (ch) => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+    })[ch]);
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    submit.disabled = true;
+    submit.textContent = "Đang định giá...";
+
+    const payload = Object.fromEntries(new FormData(form).entries());
+
+    try {
+      const response = await fetch("/predict", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await response.json();
+
+      if (!data.success) throw new Error(data.error || "Không gọi được API.");
+
+      const price = data.price.toLocaleString("vi-VN", { maximumFractionDigits: 2 });
+      resultBox.className = "result";
+      resultBox.innerHTML = `
+        <p class="price">Dự báo: ${escapeHtml(price)} ${escapeHtml(data.unit)}</p>
+        <p>Model áp dụng: <b>${escapeHtml(data.model_name)}</b></p>
+      `;
+      resultBox.hidden = false;
+    } catch (error) {
+      resultBox.className = "result error";
+      resultBox.innerHTML = `<p class="price">Lỗi</p><p>${escapeHtml(error.message)}</p>`;
+      resultBox.hidden = false;
+    } finally {
+      submit.disabled = false;
+      submit.textContent = "Định giá ngay";
+    }
+  });
+</script>
+</body>
+</html>
