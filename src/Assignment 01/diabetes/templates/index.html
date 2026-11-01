@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dự đoán nguy cơ tiểu đường</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --page-bg-a: #eaf2fb;
+    --page-bg-b: #f3f8f4;
+    --card: #ffffff;
+    --ink: #1b2a41;
+    --muted: #6b7f99;
+    --line: #dde6f0;
+    --accent: #3b45e0;
+    --accent-ink: #ffffff;
+    --ok-bg: #f1faf3;
+    --ok-line: #bfe6c9;
+    --ok-ink: #1f7a40;
+    --risk-bg: #fdf2f2;
+    --risk-line: #f3c3c3;
+    --risk-ink: #b02a2a;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    padding: 32px 16px 56px;
+    background: linear-gradient(135deg, var(--page-bg-a), var(--page-bg-b));
+    font-family: "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", sans-serif;
+    color: var(--ink);
+    min-height: 100vh;
+  }
+
+  .card {
+    max-width: 760px;
+    margin: 0 auto;
+    background: var(--card);
+    border-radius: 24px;
+    padding: 40px 36px 36px;
+    box-shadow: 0 18px 50px rgba(27, 42, 65, .10);
+  }
+
+  h1 {
+    margin: 0 0 12px;
+    font-size: clamp(1.75rem, 4.5vw, 2.4rem);
+    font-weight: 800;
+    text-align: center;
+    letter-spacing: -.02em;
+  }
+
+  .subtitle {
+    margin: 0 auto 32px;
+    max-width: 560px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 1rem;
+    line-height: 1.6;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px 20px;
+  }
+
+  .field.full { grid-column: 1 / -1; }
+
+  label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    font-size: .94rem;
+  }
+
+  input, select {
+    width: 100%;
+    padding: 14px 16px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: #fff;
+    font: inherit;
+    font-size: 1rem;
+    color: var(--ink);
+  }
+
+  input:focus, select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(59, 69, 224, .14);
+  }
+
+  button {
+    grid-column: 1 / -1;
+    margin-top: 14px;
+    padding: 17px;
+    border: 0;
+    border-radius: 14px;
+    background: var(--accent);
+    color: var(--accent-ink);
+    font: inherit;
+    font-size: 1.05rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 10px 24px rgba(59, 69, 224, .28);
+  }
+
+  button:hover:not(:disabled) { filter: brightness(1.07); }
+  button:disabled { opacity: .6; cursor: progress; }
+
+  .result {
+    margin-top: 28px;
+    padding: 28px 24px;
+    border-radius: 16px;
+    border: 1px solid var(--ok-line);
+    background: var(--ok-bg);
+    text-align: center;
+  }
+
+  .result.risk {
+    border-color: var(--risk-line);
+    background: var(--risk-bg);
+  }
+
+  .verdict {
+    margin: 0 0 14px;
+    font-size: clamp(1.1rem, 3.2vw, 1.5rem);
+    font-weight: 800;
+    text-transform: uppercase;
+    color: var(--ok-ink);
+    letter-spacing: -.01em;
+  }
+
+  .result.risk .verdict { color: var(--risk-ink); }
+
+  .result p {
+    margin: 6px 0;
+    color: var(--muted);
+    font-size: 1rem;
+  }
+
+  .result b { color: var(--ink); }
+
+  .knowledge {
+    margin-top: 22px;
+    text-align: left;
+  }
+
+  .knowledge h3 {
+    margin: 18px 0 10px;
+    font-size: 1rem;
+    color: var(--risk-ink);
+  }
+
+  .knowledge li {
+    margin-bottom: 8px;
+    line-height: 1.6;
+    font-size: .95rem;
+    color: var(--ink);
+  }
+
+  .note {
+    margin-top: 10px;
+    font-size: .85rem;
+    color: var(--muted);
+    font-style: italic;
+  }
+
+  .disclaimer {
+    margin: 26px auto 0;
+    max-width: 620px;
+    text-align: center;
+    color: var(--muted);
+    font-size: .86rem;
+    line-height: 1.6;
+  }
+
+  @media (max-width: 640px) {
+    body { padding: 20px 16px 40px; }
+    .card { padding: 28px 20px 26px; border-radius: 20px; }
+    .grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+  <main class="card">
+    <h1>Dự đoán nguy cơ tiểu đường</h1>
+    <p class="subtitle">
+      Nhập các chỉ số lâm sàng cơ bản để hệ thống AI dự đoán nguy cơ và cung cấp lời khuyên
+      y khoa cá nhân hoá.
+    </p>
+
+    <form id="form" class="grid">
+      <div class="field full">
+        <label for="model">Mô hình AI dự đoán (Model)</label>
+        <select id="model" name="model">
+          {% for m in models %}
+            <option value="{{ m.key }}" {% if m.key == default_model %}selected{% endif %}>{{ m.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="Pregnancies">Pregnancies (Số lần mang thai)</label>
+        <input type="number" id="Pregnancies" name="Pregnancies" value="3" min="0" step="1" required>
+      </div>
+
+      <div class="field">
+        <label for="Glucose">Glucose (Đường huyết)</label>
+        <input type="number" id="Glucose" name="Glucose" value="150" min="0" step="any" required>
+      </div>
+
+      <div class="field">
+        <label for="BMI">BMI (Chỉ số khối cơ thể)</label>
+        <input type="number" id="BMI" name="BMI" value="32" min="0" step="any" required>
+      </div>
+
+      <div class="field">
+        <label for="Age">Age (Tuổi)</label>
+        <input type="number" id="Age" name="Age" value="25" min="1" step="1" required>
+      </div>
+
+      <div class="field">
+        <label for="SkinThickness">Skin Thickness (Độ dày da)</label>
+        <input type="number" id="SkinThickness" name="SkinThickness" value="24" min="0" step="any" required>
+      </div>
+
+      <div class="field">
+        <label for="Insulin">Insulin</label>
+        <input type="number" id="Insulin" name="Insulin" value="110" min="0" step="any" required>
+      </div>
+
+      <button type="submit" id="submit">Phân tích kết quả</button>
+    </form>
+
+    <div id="result" hidden></div>
+
+    <p class="disclaimer">
+      Kết quả chỉ là một dự đoán thống kê trong phạm vi bộ dữ liệu Pima Indians Diabetes,
+      không thay thế chẩn đoán y khoa.
+    </p>
+  </main>
+
+<script>
+  const form = document.getElementById("form");
+  const submit = document.getElementById("submit");
+  const resultBox = document.getElementById("result");
+
+  const escapeHtml = (value) =>
+    String(value ?? "").replace(/[&<>"']/g, (ch) => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+    })[ch]);
+
+  function renderKnowledge(groups) {
+    if (!groups || !groups.length) return "";
+    const sections = groups.map((group) => {
+      const items = group.items.map((item) => {
+        const detail = item.content ? `: ${escapeHtml(item.content)}` : "";
+        return `<li><b>${escapeHtml(item.title)}</b>${detail}</li>`;
+      }).join("");
+      return `<h3>${escapeHtml(group.group_label)}</h3><ul>${items}</ul>`;
+    }).join("");
+    return `<div class="knowledge">${sections}</div>`;
+  }
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    submit.disabled = true;
+    submit.textContent = "Đang phân tích...";
+
+    const payload = Object.fromEntries(new FormData(form).entries());
+
+    try {
+      const response = await fetch("/diabetes/v1/predict", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await response.json();
+
+      if (!response.ok) throw new Error(data.error || "Không gọi được API.");
+
+      const atRisk = data.prediction === 1;
+      const verdict = atRisk
+        ? "CẢNH BÁO: CÓ NGUY CƠ TIỂU ĐƯỜNG"
+        : "TIN VUI: KHÔNG CÓ NGUY CƠ TIỂU ĐƯỜNG";
+
+      let html = `
+        <p class="verdict">${verdict}</p>
+        <p>Model phân tích: <b>${escapeHtml(data.model_name)}</b></p>
+        <p>Độ tin cậy: <b>${escapeHtml(data.confidence)}%</b></p>
+      `;
+
+      if (atRisk) {
+        html += renderKnowledge(data.knowledge);
+        if (data.knowledge_error) {
+          html += `<p class="note">Chưa tải được tri thức y khoa từ Neo4j: ${escapeHtml(data.knowledge_error)}</p>`;
+        }
+      }
+
+      resultBox.className = atRisk ? "result risk" : "result";
+      resultBox.innerHTML = html;
+      resultBox.hidden = false;
+    } catch (error) {
+      resultBox.className = "result risk";
+      resultBox.innerHTML = `<p class="verdict">Lỗi</p><p>${escapeHtml(error.message)}</p>`;
+      resultBox.hidden = false;
+    } finally {
+      submit.disabled = false;
+      submit.textContent = "Phân tích kết quả";
+    }
+  });
+</script>
+</body>
+</html>

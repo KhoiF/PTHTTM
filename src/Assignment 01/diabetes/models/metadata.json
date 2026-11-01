@@ -1,0 +1,97 @@
+{
+  "task": "binary_classification",
+  "dataset": "Pima Indians Diabetes",
+  "n_samples": 768,
+  "deploy_features": [
+    "Glucose",
+    "BMI",
+    "Age",
+    "Pregnancies",
+    "SkinThickness",
+    "Insulin"
+  ],
+  "report_features": [
+    "Glucose",
+    "BMI",
+    "Age"
+  ],
+  "optimal_k_3_features": 43,
+  "optimal_k_6_features": 13,
+  "report_best_model": "knn",
+  "default_model": "knn",
+  "best_deploy_model": "svm_linear",
+  "models": {
+    "logistic_regression": {
+      "file": "logistic_regression.sav",
+      "display_name": "Logistic Regression",
+      "features": [
+        "Glucose",
+        "BMI",
+        "Age",
+        "Pregnancies",
+        "SkinThickness",
+        "Insulin"
+      ],
+      "test_metrics": {
+        "Accuracy": 0.7013,
+        "Precision": 0.58,
+        "Recall": 0.537,
+        "F1-score": 0.5577
+      }
+    },
+    "knn": {
+      "file": "knn.sav",
+      "display_name": "K-Nearest Neighbors",
+      "features": [
+        "Glucose",
+        "BMI",
+        "Age",
+        "Pregnancies",
+        "SkinThickness",
+        "Insulin"
+      ],
+      "test_metrics": {
+        "Accuracy": 0.6948,
+        "Precision": 0.5686,
+        "Recall": 0.537,
+        "F1-score": 0.5524
+      }
+    },
+    "svm_linear": {
+      "file": "svm_linear.sav",
+      "display_name": "SVM Linear",
+      "features": [
+        "Glucose",
+        "BMI",
+        "Age",
+        "Pregnancies",
+        "SkinThickness",
+        "Insulin"
+      ],
+      "test_metrics": {
+        "Accuracy": 0.7208,
+        "Precision": 0.617,
+        "Recall": 0.537,
+        "F1-score": 0.5743
+      }
+    },
+    "svm_rbf": {
+      "file": "svm_rbf.sav",
+      "display_name": "SVM RBF",
+      "features": [
+        "Glucose",
+        "BMI",
+        "Age",
+        "Pregnancies",
+        "SkinThickness",
+        "Insulin"
+      ],
+      "test_metrics": {
+        "Accuracy": 0.7143,
+        "Precision": 0.6136,
+        "Recall": 0.5,
+        "F1-score": 0.551
+      }
+    }
+  }
+}
