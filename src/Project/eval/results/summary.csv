@@ -1,0 +1,5 @@
+cấu hình,số ca,lỗi,đúng tuyến (%),số liệu trung thực (%),trích dẫn hợp lệ (%),nêu mâu thuẫn ngưỡng (%),đủ ý bắt buộc (%),vi phạm liều thuốc,vi phạm chẩn đoán,bằng chứng TB,số bước TB,lượt LLM TB,thời gian TB (s)
+A. Đầy đủ (6 agent + KG + Critic),24,0,100.0,100.0,100.0,100.0,100.0,0,0,8.5,6.6,8.5,53.2
+B. Bỏ Critic,24,0,100.0,100.0,95.5,100.0,100.0,0,0,8.5,5.1,7.0,35.5
+C. Vector RAG thay KG,24,0,100.0,100.0,100.0,100.0,100.0,0,0,5.7,6.2,7.8,37.3
+D. Một agent duy nhất,24,0,,58.3,12.5,100.0,100.0,1,0,1.6,2.0,1.7,15.1

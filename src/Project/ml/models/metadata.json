@@ -1,0 +1,98 @@
+{
+  "created_at": "2026-11-02T07:55:27",
+  "target": "diabetes",
+  "cleaning": {
+    "rows_raw": 100000,
+    "duplicates": 3854,
+    "gender_other": 18,
+    "rows_clean": 96128,
+    "positive_rate": 0.08823651797603196
+  },
+  "split": {
+    "train": 67288,
+    "val": 14420,
+    "test": 14420,
+    "random_state": 42
+  },
+  "feature_sets": {
+    "full": {
+      "features": [
+        "gender",
+        "age",
+        "hypertension",
+        "heart_disease",
+        "smoking_history",
+        "bmi",
+        "HbA1c_level",
+        "blood_glucose_level"
+      ],
+      "served_model": "XGBoost",
+      "threshold": 0.4367816150188446,
+      "test_metrics": {
+        "ROC-AUC": 0.9774619869487767,
+        "PR-AUC": 0.8747039562604146,
+        "F1": 0.8066248880931065,
+        "Precision": 0.9365904365904366,
+        "Recall": 0.7083333333333334,
+        "Brier": 0.023764062995428357
+      }
+    },
+    "screening": {
+      "features": [
+        "gender",
+        "age",
+        "hypertension",
+        "heart_disease",
+        "smoking_history",
+        "bmi"
+      ],
+      "served_model": "XGBoost",
+      "threshold": 0.22673030197620392,
+      "test_metrics": {
+        "ROC-AUC": 0.8236230957000418,
+        "PR-AUC": 0.2926761032788511,
+        "F1": 0.36495430192247086,
+        "Precision": 0.30457653866386114,
+        "Recall": 0.455188679245283,
+        "Brier": 0.06990121155043218
+      }
+    }
+  },
+  "grey_margin": 0.15,
+  "valid_ranges": {
+    "age": [
+      0.08,
+      80.0
+    ],
+    "bmi": [
+      10.0,
+      96.0
+    ],
+    "HbA1c_level": [
+      3.5,
+      9.0
+    ],
+    "blood_glucose_level": [
+      80.0,
+      300.0
+    ]
+  },
+  "smoking_categories": [
+    "never",
+    "No Info",
+    "current",
+    "former",
+    "ever",
+    "not current"
+  ],
+  "assignment_03_best": {
+    "model": "Decision Tree (A03)",
+    "F1": 0.8039,
+    "ROC-AUC": 0.9731,
+    "PR-AUC": 0.8514
+  },
+  "versions": {
+    "sklearn": "1.7.2",
+    "xgboost": "3.4.1"
+  }
+}

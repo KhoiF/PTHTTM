@@ -66,6 +66,9 @@ wheels/
 *.vrb
 *.bbl
 *.blg
+*.lol
+_minted/
+_minted-*/
 
 # IDEs
 .vscode/
@@ -122,3 +125,8 @@ src/Agent 02/data/*
 
 # Trained model weights (chạy lại notebook/script trong từng assignment để sinh)
 *.sav
+
+# Project: nội dung trang Long Châu có bản quyền và cache LLM chỉ để local
+src/Project/kb/raw_html/
+src/Project/kb/cache/
+src/Project/kb/processed/pages.jsonl
