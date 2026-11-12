@@ -96,6 +96,9 @@ của Long Châu; repo chỉ giữ dữ liệu đã trích (quan hệ kèm câu 
 
 **3. Dựng Knowledge Graph.** Mở `kb/build_kg.ipynb`. Lần đầu mất khoảng 45 phút ở bước LLM trích xuất; kết quả được cache trong
 `kb/cache/` nên chạy lại rất nhanh. Xem thống kê KG đang có trong Neo4j: `python -m kb.load_neo4j --stats`.
+Bản sao lưu toàn bộ KG (node, quan hệ, embedding, chỉ mục) là `kb/DB_diabet.cypher`; sinh lại bằng
+`python -m kb.load_neo4j --export kb/DB_diabet.cypher`, nạp vào Neo4j khác bằng
+`cypher-shell -u neo4j -p <mật khẩu> -f kb/DB_diabet.cypher` (khoảng 1 phút, không cần Ollama hay trang Long Châu).
 Cuối notebook có file `kb/processed/precision_sample.csv` (50 quan hệ ngẫu nhiên) để chấm precision: cột `correct` là
 1/0, cột `ly_do` ghi lý do.
 
